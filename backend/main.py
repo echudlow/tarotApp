@@ -108,8 +108,6 @@ def normalize_output(req: SpreadRequest, text: str) -> str:
     ).strip()
 
     if is_daily:
-        # If the model still tried to do Past/Present/Future, strip those headings.
-        # (We keep the remaining paragraphs so you still get *something*.)
         text = re.sub(
             r"\*\*\s*(Past|Present|Future)\s*—.*?\*\*:?(\s*)",
             "",
@@ -133,9 +131,6 @@ def interpret_spread(req: SpreadRequest):
         raise HTTPException(status_code=400, detail="No cards provided")
 
     prompt = build_prompt(req)
-
-    # Helpful for debugging to confirm you received the right payload:
-    # print("spread_type:", req.spread_type, "n_cards:", len(req.cards), "positions:", [c.position for c in req.cards])
 
     try:
         completion = client.responses.create(
