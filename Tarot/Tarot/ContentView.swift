@@ -11,6 +11,7 @@ struct DrawnCard: Identifiable {
     let id = UUID()
     let card: TarotCard
     let isReversed: Bool
+    let position: String      // Past / Present / etc
 }
 
 struct ContentView: View {
@@ -18,25 +19,66 @@ struct ContentView: View {
     @Query(sort: \TarotCard.name) private var cards: [TarotCard]
 
     @State private var spread: [DrawnCard] = []
+    
+    @State private var interpretation: String? = nil
+    @State private var isLoadingINterpretation: Bool = false
+    @State private var interpretationError: String? = nil
+    @State private var interpretTask: Task<Void, Never>? = nil
+    @State private var activeRequestID = UUID()
 
-    // MARK: - Body
+    
+    private let tarotService = TarotService()
 
     var body: some View {
         NavigationStack {
             List {
-                // 🔮 Spread section
-                Section("3-Card Spread") {
-                    Button("Draw 3-Card Spread") {
-                        drawSpread(count: 3)
-                    }
+                // MARK: - Buttons row
+                Section {
+                    HStack {
+                        Button("Daily Card") {
+                            drawSpread(spreadType: "daily",
+                                       positions: ["Daily Card"])
+                        }
+                        .buttonStyle(.bordered)
 
+                        Spacer()
+
+                        Button("3-Card Spread") {
+                            drawSpread(spreadType: "three_card",
+                                       positions: ["Past", "Present", "Future"])
+                        }
+                        .buttonStyle(.bordered)
+
+                        Spacer()
+
+                        Button("4-Card Spread") {
+                            drawSpread(spreadType: "four_card",
+                                       positions: ["Past", "Present", "Future", "Current Situation"])
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
+
+                // MARK: - Current Spread
+                Section("Current Spread") {
                     if spread.isEmpty {
-                        Text("Tap \"Draw 3-Card Spread\" to begin!")
+                        Text("Tap a button above to draw a spread.")
                             .foregroundStyle(.secondary)
                     } else {
+
+                        // 1. Show each card individually
                         ForEach(spread) { drawn in
                             let card = drawn.card
-                            VStack(alignment: .leading, spacing: 4) {
+
+                            VStack(alignment: .leading, spacing: 6) {
+
+                                // Position label (Past, Present, etc)
+                                Text(drawn.position)
+                                    .font(.caption)
+                                    .textCase(.uppercase)
+                                    .foregroundStyle(.secondary)
+
+                                // Card name + reversed tag
                                 HStack {
                                     Text(card.name)
                                         .font(.headline)
@@ -47,86 +89,155 @@ struct ContentView: View {
                                     }
                                 }
 
-                                if let arcana = card.arcana {
-                                    if let suit = card.suit {
-                                        Text("\(arcana) - \(suit)")
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
-                                    } else {
-                                        Text(arcana)
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
-                                    }
+                                // Image
+                                if let imageName = card.imageName {
+                                    Image(imageName)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(height: 150)
+                                        .rotationEffect(drawn.isReversed ? .degrees(180) : .degrees(0))
+                                        .cornerRadius(8)
                                 }
 
-                                Text(drawn.isReversed ? card.reversedMeaning : card.uprightMeaning)
+                                // Upright or Reversed meaning
+                                Text(drawn.isReversed
+                                     ? "Reversed: \(card.reversedMeaning)"
+                                     : "Upright: \(card.uprightMeaning)"
+                                )
+                                .font(.body)
+                                .foregroundStyle(.secondary)
+                            }
+                            .padding(.vertical, 4)
+                        }
+
+                        // 2. Single interpretation block at the end
+                        VStack(alignment: .leading, spacing: 8) {
+
+                            if isLoadingINterpretation {
+                                ProgressView("Interpreting your spread…")
+                                    .padding(.top, 8)
+
+                            } else if let error = interpretationError {
+                                Text("Could not interpret this spread: \(error)")
+                                    .foregroundStyle(.red)
+                                    .font(.footnote)
+                                    .padding(.top, 8)
+
+                            } else if let text = interpretation {
+                                Divider()
+                                    .padding(.top, 8)
+
+                                Text("Interpretation")
+                                    .font(.headline)
+
+                                Text(text)
                                     .font(.body)
                                     .foregroundStyle(.secondary)
                             }
                         }
+                        .padding(.top, 8)
                     }
                 }
 
-                // 📚 Full deck section
-                Section("All Cards") {
-                    ForEach(cards) { card in
-                        VStack(alignment: .leading) {
-                            Text("\(card.name) - \(card.number ?? 0)")
-                                .font(.headline)
 
-                            if let arcana = card.arcana {
-                                if let suit = card.suit {
-                                    Text("\(arcana) - \(suit)")
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                } else {
-                                    Text(arcana)
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-
-                            Text(card.uprightMeaning)
-                                .font(.body)
-                                .foregroundStyle(.secondary)
-                            Text(card.reversedMeaning)
-                                .font(.body)
-                                .foregroundStyle(.secondary)
-                            if let imageName = card.imageName {
-                                Image(imageName)
-                                    .resizable()
-                                    .scaledToFit()
-                                    .cornerRadius(8)
-                            }
-                        }
+                // MARK: - Deck navigation
+                Section("Deck") {
+                    NavigationLink("View All Cards") {
+                        AllCardsView()
                     }
                 }
             }
             .navigationTitle("Tarot Deck")
-            .toolbar {
-                Button("Seed Deck") {
-                    seedTarotDeckIfNeeded()
-                }
-            }
+        }
+        // Seed deck automatically in the background
+        .task {
+            seedTarotDeckIfNeeded()
         }
     }
 
     // MARK: - Spread logic
 
-    private func drawSpread(count: Int) {
-        guard !cards.isEmpty else {
-            print("No cards in deck; seed first.")
-            return
+    private func drawSpread(spreadType: String, positions: [String]) {
+        guard cards.count >= positions.count else { return }
+
+        let selected = Array(cards.shuffled().prefix(positions.count))
+
+        let newSpread: [DrawnCard] = selected.enumerated().map { index, card in
+            DrawnCard(card: card,
+                      isReversed: Bool.random(),
+                      position: positions[index])
         }
 
-        let shuffled = cards.shuffled()
-        let selected = Array(shuffled.prefix(count))
+        // Update UI immediately
+        spread = newSpread
 
-        spread = selected.map { card in
-            DrawnCard(card: card, isReversed: Bool.random())
+        // Reset interpretation state
+        interpretation = nil
+        interpretationError = nil
+        isLoadingINterpretation = true
+
+        // Cancel any in-flight interpretation
+        interpretTask?.cancel()
+
+        // New request ID for this draw
+        let requestID = UUID()
+        activeRequestID = requestID
+
+        interpretTask = Task {
+            await interpretSpreadSnapshot(
+                spreadType: spreadType,
+                spreadSnapshot: newSpread,
+                requestID: requestID
+            )
+        }
+
+    }
+    
+    private func interpretSpreadSnapshot(
+        spreadType: String,
+        spreadSnapshot: [DrawnCard],
+        requestID: UUID
+    ) async {
+        defer {
+            if activeRequestID == requestID {
+                isLoadingINterpretation = false
+            }
+        }
+
+        // If we were cancelled, stop immediately
+        if Task.isCancelled { return }
+
+        let apiCards: [TarotAPICard] = spreadSnapshot.map { drawn in
+            TarotAPICard(
+                name: drawn.card.name,
+                position: drawn.position,
+                isReversed: drawn.isReversed,
+                uprightMeaning: drawn.card.uprightMeaning,
+                reversedMeaning: drawn.card.reversedMeaning,
+                suit: drawn.card.suit,
+                arcana: drawn.card.arcana
+            )
+        }
+
+        let body = SpreadRequestBody(spread_type: spreadType, cards: apiCards)
+
+        do {
+            let response = try await tarotService.interpretSpread(body)
+
+            // Ignore stale responses
+            guard activeRequestID == requestID else { return }
+
+            interpretation = response.interpretation
+        } catch {
+            guard !Task.isCancelled else { return }
+            guard activeRequestID == requestID else { return }
+
+            interpretationError = error.localizedDescription
+            print("Interpretation error:", error)
         }
     }
 
+    
     private func seedTarotDeckIfNeeded() {
         guard cards.isEmpty else { return }
 
