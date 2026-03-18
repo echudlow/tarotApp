@@ -1,6 +1,7 @@
 {
   "images" : [
     {
+      "filename" : "tarot_icon_fullbleed.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -12,6 +13,7 @@
           "value" : "dark"
         }
       ],
+      "filename" : "tarot_icon_fullbleed 1.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -23,6 +25,7 @@
           "value" : "tinted"
         }
       ],
+      "filename" : "tarot_icon_fullbleed 2.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"

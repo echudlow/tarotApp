@@ -14,6 +14,6 @@ struct TarotApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: TarotCard.self)
+        .modelContainer(for: [TarotCard.self, Reading.self])
     }
 }

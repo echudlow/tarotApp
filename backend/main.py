@@ -4,15 +4,15 @@ from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from openai import OpenAI
+import anthropic
 
 
 # ----------------- Setup -----------------
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    raise RuntimeError("OPENAI_API_KEY not set")
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+if not ANTHROPIC_API_KEY:
+    raise RuntimeError("ANTHROPIC_API_KEY not set")
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
 app = FastAPI(title="Tarot AI Backend")
 
@@ -94,12 +94,11 @@ Card meaning reference (use as guidance, do not quote verbatim):
     return "\n".join(lines)
 
 
-# ----------------- Output normalization (guardrail) -----------------
+# ----------------- Output normalization -----------------
 def normalize_output(req: SpreadRequest, text: str) -> str:
     n = len(req.cards)
     is_daily = (req.spread_type == "daily") or (n == 1)
 
-    # strip common "cheerful" openers
     text = re.sub(
         r"^\s*(Certainly!|Sure!|Of course!|Absolutely!|Okay!|Alright!)[^\n]*\n+",
         "",
@@ -115,7 +114,6 @@ def normalize_output(req: SpreadRequest, text: str) -> str:
             flags=re.IGNORECASE,
         ).strip()
 
-        # If the model forgot the Daily Card header, prepend a simple one.
         if "**Daily Card" not in text:
             c = req.cards[0]
             orientation = "Reversed" if c.is_reversed else "Upright"
@@ -133,29 +131,17 @@ def interpret_spread(req: SpreadRequest):
     prompt = build_prompt(req)
 
     try:
-        completion = client.responses.create(
-            model="gpt-4.1-mini",
-            input=(
-                "You are a tarot reader. Be warm, clear, and realistic. "
-                "Follow the user-provided STRICT RULES exactly.\n\n"
-                f"{prompt}"
-            ),
-            max_output_tokens=700,
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=700,
+            system="You are an experienced tarot reader speaking directly to someone. Be warm, honest, and grounded - you can be poetic when it fits naturally, but avoid cliches, filler phrases, and anything that sounds like a chatbot. Speak like a real person who genuinely knows this card. Follow the formatting rules exactly.",
+            messages=[{"role": "user", "content": prompt}]
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"OpenAI request failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Anthropic request failed: {e}")
 
-    # Responses API format: text lives in output[0].content[...].text
-    text_parts: List[str] = []
-    if completion.output:
-        for item in completion.output:
-            if getattr(item, "type", None) == "message":
-                for part in getattr(item, "content", []) or []:
-                    t = getattr(part, "text", None)
-                    if t:
-                        text_parts.append(t)
+    text = message.content[0].text.strip() if message.content else ""
 
-    text = "".join(text_parts).strip()
     if not text:
         text = "I'm sorry, I couldn't interpret this spread right now."
 
