@@ -147,8 +147,9 @@ struct CardGridItem: View {
                 Image(imageName)
                     .resizable()
                     .aspectRatio(2/3, contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: 120)
                     .cornerRadius(6)
-                    .frame(maxWidth: .infinity)
+                    .clipped()
             } else {
                 RoundedRectangle(cornerRadius: 6)
                     .fill(.white.opacity(0.06))

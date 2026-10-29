@@ -24,6 +24,9 @@ struct ContentView: View {
     @State private var interpretationError: String? = nil
     @State private var interpretTask: Task<Void, Never>? = nil
     @State private var activeRequestID = UUID()
+    @State private var showingQuestionInput = false
+    @State private var questionText = ""
+    @State private var previewCards: [DrawnCard] = []
     
     private let tarotService = TarotService()
     
@@ -52,27 +55,34 @@ struct ContentView: View {
                             SpreadButton(label: "Daily", sublabel: "1 card") {
                                 drawSpread(spreadType: "daily", positions: ["Daily Card"])
                             }
-                            SpreadButton(label: "Three", sublabel: "Past · Present · Future") {
+                            SpreadButton(label: "Three", sublabel: "3 cards") {
                                 drawSpread(spreadType: "three_card", positions: ["Past", "Present", "Future"])
                             }
                             SpreadButton(label: "Four", sublabel: "Situation spread") {
                                 drawSpread(spreadType: "four_card", positions: ["Past", "Present", "Future", "Current Situation"])
                             }
+                            SpreadButton(label: "Ask", sublabel: "5 card spread") {
+                                showingQuestionInput = true
+                            }
                         }
                         
                         // MARK: - Current Spread
                         if spread.isEmpty {
-                            VStack(spacing: 12) {
-                                Text("✦")
-                                    .font(.system(size: 28))
-                                    .foregroundStyle(.white.opacity(0.2))
-                                Text("Choose a spread to begin")
-                                    .font(.system(size: 14, weight: .light))
-                                    .foregroundStyle(.white.opacity(0.3))
+                            if !previewCards.isEmpty {
+                                CardFanView(spread: previewCards, isHomePreview: true)
+                                    .padding(.vertical, 24)
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 48)
+                            Text("Choose a spread to begin")
+                                .font(.system(size: 14, weight: .light))
+                                .foregroundStyle(.white.opacity(0.3))
+                                .frame(maxWidth: .infinity)
+                                .padding(.bottom, 24)
                         } else {
+                            // Card an display
+                            if spread.count > 1 {
+                                CardFanView(spread: spread, isHomePreview: false)
+                            }
+                            
                             VStack(spacing: 16) {
                                 ForEach(spread) { drawn in
                                     CardRow(drawn: drawn)
@@ -130,7 +140,7 @@ struct ContentView: View {
                                     .foregroundStyle(.white.opacity(0.25))
                             }
                         }
-
+                        
                         Rectangle()
                             .fill(.white.opacity(0.08))
                             .frame(height: 1)
@@ -154,13 +164,35 @@ struct ContentView: View {
             .navigationBarHidden(true)
         }
         .preferredColorScheme(.dark)
+        .sheet(isPresented: $showingQuestionInput) {
+            QuestionInputSheet(questionText: $questionText) { question in
+                drawQuestionSpread(question: question)
+            }
+        }
         .task {
             seedTarotDeckIfNeeded()
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            print("Cards count: \(cards.count), previewCards count: \(previewCards.count)")
+            if previewCards.isEmpty && cards.count >= 5 {
+                let selected = Array(cards.shuffled().prefix(5))
+                previewCards = selected.map { card in
+                    DrawnCard(card: card, isReversed: Bool.random(), position: "")
+                }
+                print("Seeded preview with \(previewCards.count) cards")
+            }
+        }
+        .onChange(of: cards.count, initial: false) { _, count in
+            if previewCards.isEmpty && count >= 5 {
+                let selected = Array(cards.shuffled().prefix(5))
+                previewCards = selected.map { card in
+                    DrawnCard(card: card, isReversed: Bool.random(), position: "")
+                }
+            }
         }
     }
     
     // MARK: - Markdown parser
-    private func parseMarkdown(_ text: String) -> AttributedString {
+    func parseMarkdown(_ text: String) -> AttributedString {
         (try? AttributedString(markdown: text, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(text)
     }
     
@@ -187,7 +219,7 @@ struct ContentView: View {
         }
     }
     
-    private func interpretSpreadSnapshot(spreadType: String, spreadSnapshot: [DrawnCard], requestID: UUID) async {
+    private func interpretSpreadSnapshot(spreadType: String, spreadSnapshot: [DrawnCard], requestID: UUID, question: String? = nil) async {
         defer {
             if activeRequestID == requestID {
                 isLoadingInterpretation = false
@@ -207,7 +239,7 @@ struct ContentView: View {
             )
         }
         
-        let body = SpreadRequestBody(spread_type: spreadType, cards: apiCards)
+        let body = SpreadRequestBody(spread_type: spreadType, cards: apiCards, question: question)
         
         do {
             let response = try await tarotService.interpretSpread(body)
@@ -230,6 +262,41 @@ struct ContentView: View {
             print("Interpretation error:", error)
         }
     }
+    private func drawQuestionSpread(question: String) {
+        guard cards.count >= 5 else { return }
+        
+        let positions = [
+            "The Question",
+            "The Background",
+            "The Seeker",
+            "The Environment",
+            "The Answer"
+        ]
+        
+        let selected = Array(cards.shuffled().prefix(5))
+        let newSpread: [DrawnCard] = selected.enumerated().map { index, card in
+            DrawnCard(card: card, isReversed: Bool.random(), position: positions[index])
+        }
+        
+        spread = newSpread
+        interpretation = nil
+        interpretationError = nil
+        isLoadingInterpretation = true
+        interpretTask?.cancel()
+        
+        let requestID = UUID()
+        activeRequestID = requestID
+        
+        interpretTask = Task {
+            await interpretSpreadSnapshot(
+                spreadType: "question",
+                spreadSnapshot: newSpread,
+                requestID: requestID,
+                question: question
+            )
+        }
+    }
+    
     // MARK: - Subviews
     
     struct SpreadButton: View {
@@ -239,7 +306,7 @@ struct ContentView: View {
         
         var body: some View {
             Button(action: action) {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .center, spacing: 4) {
                     Text(label)
                         .font(.system(size: 15, weight: .regular, design: .serif))
                         .foregroundStyle(.white)
@@ -248,8 +315,9 @@ struct ContentView: View {
                         .foregroundStyle(.white.opacity(0.4))
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
+                        .truncationMode(.tail)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 14)
                 .background(
@@ -300,12 +368,11 @@ struct ContentView: View {
                     Image(imageName)
                         .resizable()
                         .scaledToFit()
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity, maxHeight: 300)
                         .aspectRatio(2/3,contentMode: .fit)
                         .rotationEffect(drawn.isReversed ? .degrees(180) : .degrees(0))
                         .cornerRadius(6)
                         .opacity(0.9)
-                        .clipped()
                 }
                 
                 Text(drawn.isReversed ? drawn.card.reversedMeaning : drawn.card.uprightMeaning)
@@ -327,6 +394,91 @@ struct ContentView: View {
         #Preview {
             ContentView()
                 .modelContainer(for: TarotCard.self, inMemory: true)
+        }
+    }
+    struct CardFanView: View {
+        let spread: [DrawnCard]
+        let isHomePreview: Bool
+        
+        var body: some View {
+            let count = spread.count
+            let _ = print("CardFanView count: \(count), isHomePreview: \(isHomePreview)")
+            if count == 1 {
+                // Single card — centered, no rotation
+                if let imageName = spread[0].card.imageName {
+                    Image(imageName)
+                        .resizable()
+                        .aspectRatio(2/3, contentMode: .fit)
+                        .frame(width: 80)
+                        .cornerRadius(6)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                }
+            } else if count <= 4 {
+                // Straight line, evenly spaced
+                HStack(spacing: 12) {
+                    ForEach(Array(spread.enumerated()), id: \.offset) { _, drawn in
+                        if let imageName = drawn.card.imageName {
+                            Image(imageName)
+                                .resizable()
+                                .aspectRatio(2/3, contentMode: .fit)
+                                .frame(width: count == 3 ? 90 : 78)
+                                .cornerRadius(6)
+                                .rotationEffect(.degrees(drawn.isReversed ? 180 : 0))
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+            } else {
+                if isHomePreview {
+                    let arcAngles: [Double] = [-20, -10, 0, 10, 20]
+                    let arcOffsets: [CGFloat] = [-85, -42, 0, 42, 85]
+                    let arcVertical: [CGFloat] = [20, 8, 0, 8, 20]
+                    
+                    ZStack {
+                        ForEach(Array(spread.enumerated()), id: \.offset) { index, drawn in
+                            if let imageName = drawn.card.imageName {
+                                Image(imageName)
+                                    .resizable()
+                                    .aspectRatio(2/3, contentMode: .fit)
+                                    .frame(width: 72)
+                                    .cornerRadius(6)
+                                    .rotationEffect(.degrees(drawn.isReversed ? 180 : 0))
+                                    .rotationEffect(.degrees(arcAngles[index]))
+                                    .offset(x: arcOffsets[index], y: arcVertical[index])
+                                    .shadow(color: .black.opacity(0.4), radius: 4, x: 0, y: 2)
+                            }
+                        }
+                    }
+                    .frame(height: 200)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                } else {
+                    // V-shape layout for active 5-card spread
+                        let vOffsets: [CGFloat] = [-30, -15, 0, -15, -30]
+                        let spacing: CGFloat = 58
+                        let totalWidth = spacing * 4
+                        let startX: CGFloat = -(totalWidth / 2)
+                        
+                        ZStack {
+                            ForEach(Array(spread.enumerated()), id: \.offset) { index, drawn in
+                                if let imageName = drawn.card.imageName {
+                                    Image(imageName)
+                                        .resizable()
+                                        .aspectRatio(2/3, contentMode: .fit)
+                                        .frame(width: 58)
+                                        .cornerRadius(5)
+                                        .rotationEffect(.degrees(drawn.isReversed ? 180 : 0))
+                                        .offset(x: startX + CGFloat(index) * spacing, y: vOffsets[index])
+                                }
+                            }
+                        }
+                        .frame(height: 160)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    }
+            }
         }
     }
 }

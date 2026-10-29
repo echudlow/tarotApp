@@ -17,6 +17,7 @@ class Reading {
     var cardPositions: [String]
     var cardReversals: [Bool]
     var interpretation: String
+    var question: String?
 
     init(
         id: UUID = UUID(),
@@ -25,7 +26,8 @@ class Reading {
         cardNames: [String],
         cardPositions: [String],
         cardReversals: [Bool],
-        interpretation: String
+        interpretation: String,
+        question: String? = nil
     ) {
         self.id = id
         self.date = date
@@ -34,6 +36,7 @@ class Reading {
         self.cardPositions = cardPositions
         self.cardReversals = cardReversals
         self.interpretation = interpretation
+        self.question = question
     }
     
     var spreadDisplayName: String {

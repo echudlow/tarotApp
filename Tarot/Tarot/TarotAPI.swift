@@ -24,6 +24,7 @@ struct TarotAPICard: Codable {
 struct SpreadRequestBody: Codable {
     let spread_type: String
     let cards: [TarotAPICard]
+    let question: String?
 }
 
 struct SpreadResponseBody: Codable {
@@ -92,6 +93,7 @@ struct TarotService {
     // MARK: - Prompt building
     private func buildPrompt(_ req: SpreadRequestBody) -> String {
         let isDaily = req.spread_type == "daily" || req.cards.count == 1
+        let isQuestion = req.spread_type == "question"
 
         if isDaily, let c = req.cards.first {
             let orientation = c.isReversed ? "Reversed" : "Upright"
@@ -114,6 +116,34 @@ struct TarotService {
             Card meaning reference (use as guidance, do not quote verbatim):
             \(meaning)
             """
+        }
+
+        if isQuestion, let question = req.question {
+            var lines = [
+                "You are a tarot reader. The seeker has asked a specific question. Interpret each card in direct relation to their question.",
+                "",
+                "THE QUESTION: \"\(question)\"",
+                "",
+                "STRICT RULES:",
+                "- Speak directly to the seeker.",
+                "- Every card interpretation must relate back to their specific question.",
+                "- You can be poetic but stay grounded and specific.",
+                "- Do NOT include greetings or filler.",
+                "- For EACH card output exactly one section in this format:",
+                "  **<Position> — <Card Name> (<Upright/Reversed>):**",
+                "  <1 paragraph interpretation>",
+                "- End with:",
+                "  **The Answer:**",
+                "  <1 clear paragraph directly answering the question based on all 5 cards>",
+                "",
+                "CARDS:"
+            ]
+            for c in req.cards {
+                let orientation = c.isReversed ? "Reversed" : "Upright"
+                let meaning = c.isReversed ? c.reversedMeaning : c.uprightMeaning
+                lines.append("- Position: \(c.position) | Card: \(c.name) | Orientation: \(orientation) | MeaningRef: \(meaning)")
+            }
+            return lines.joined(separator: "\n")
         }
 
         var lines = [
@@ -139,7 +169,7 @@ struct TarotService {
 
         return lines.joined(separator: "\n")
     }
-
+    
     // MARK: - Output normalization
     private func normalizeOutput(_ req: SpreadRequestBody, text: String) -> String {
         var result = text.trimmingCharacters(in: .whitespacesAndNewlines)

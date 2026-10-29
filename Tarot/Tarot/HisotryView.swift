@@ -172,6 +172,13 @@ struct ReadingDetailSheet: View {
                         Text(formattedDate)
                             .font(.system(size: 22, weight: .light, design: .serif))
                             .foregroundStyle(.white)
+                        if let question = reading.question {
+                            Text("\"\(question)\"")
+                                .font(.system(size: 16, weight: .light, design: .serif))
+                                .foregroundStyle(.white.opacity(0.6))
+                                .italic()
+                                .padding(.top, 4)
+                        }
                     }
 
                     Rectangle()

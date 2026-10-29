@@ -40,9 +40,10 @@ struct DailyCardIntent: AppIntent {
             suit: card.suit,
             arcana: card.arcana
         )
-        let body = SpreadRequestBody(spread_type: "daily", cards: [apiCard])
+        let body = SpreadRequestBody(spread_type: "daily", cards: [apiCard], question: nil)
         let response = try await service.interpretSpread(body)
 
+        
         let spokenText = response.interpretation
             .replacingOccurrences(of: "**", with: "")
             .replacingOccurrences(of: "*", with: "")
