@@ -24,9 +24,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		FF6F9D852EEA050F007F7CF8 /* Tarot.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tarot.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		FF6F9D942EEA0511007F7CF8 /* TarotTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TarotTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		FF6F9D9E2EEA0511007F7CF8 /* TarotUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TarotUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		FF6F9D852EEA050F007F7CF8 /* The Read.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "The Read.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		FF6F9D942EEA0511007F7CF8 /* The ReadTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "The ReadTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		FF6F9D9E2EEA0511007F7CF8 /* The ReadUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "The ReadUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -85,9 +85,9 @@
 		FF6F9D862EEA050F007F7CF8 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				FF6F9D852EEA050F007F7CF8 /* Tarot.app */,
-				FF6F9D942EEA0511007F7CF8 /* TarotTests.xctest */,
-				FF6F9D9E2EEA0511007F7CF8 /* TarotUITests.xctest */,
+				FF6F9D852EEA050F007F7CF8 /* The Read.app */,
+				FF6F9D942EEA0511007F7CF8 /* The ReadTests.xctest */,
+				FF6F9D9E2EEA0511007F7CF8 /* The ReadUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -95,9 +95,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		FF6F9D842EEA050F007F7CF8 /* Tarot */ = {
+		FF6F9D842EEA050F007F7CF8 /* The Read */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = FF6F9DA82EEA0511007F7CF8 /* Build configuration list for PBXNativeTarget "Tarot" */;
+			buildConfigurationList = FF6F9DA82EEA0511007F7CF8 /* Build configuration list for PBXNativeTarget "The Read" */;
 			buildPhases = (
 				FF6F9D812EEA050F007F7CF8 /* Sources */,
 				FF6F9D822EEA050F007F7CF8 /* Frameworks */,
@@ -110,16 +110,16 @@
 			fileSystemSynchronizedGroups = (
 				FF6F9D872EEA050F007F7CF8 /* Tarot */,
 			);
-			name = Tarot;
+			name = "The Read";
 			packageProductDependencies = (
 			);
 			productName = Tarot;
-			productReference = FF6F9D852EEA050F007F7CF8 /* Tarot.app */;
+			productReference = FF6F9D852EEA050F007F7CF8 /* The Read.app */;
 			productType = "com.apple.product-type.application";
 		};
-		FF6F9D932EEA0511007F7CF8 /* TarotTests */ = {
+		FF6F9D932EEA0511007F7CF8 /* The ReadTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = FF6F9DAB2EEA0511007F7CF8 /* Build configuration list for PBXNativeTarget "TarotTests" */;
+			buildConfigurationList = FF6F9DAB2EEA0511007F7CF8 /* Build configuration list for PBXNativeTarget "The ReadTests" */;
 			buildPhases = (
 				FF6F9D902EEA0511007F7CF8 /* Sources */,
 				FF6F9D912EEA0511007F7CF8 /* Frameworks */,
@@ -133,16 +133,16 @@
 			fileSystemSynchronizedGroups = (
 				FF6F9D972EEA0511007F7CF8 /* TarotTests */,
 			);
-			name = TarotTests;
+			name = "The ReadTests";
 			packageProductDependencies = (
 			);
 			productName = TarotTests;
-			productReference = FF6F9D942EEA0511007F7CF8 /* TarotTests.xctest */;
+			productReference = FF6F9D942EEA0511007F7CF8 /* The ReadTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		FF6F9D9D2EEA0511007F7CF8 /* TarotUITests */ = {
+		FF6F9D9D2EEA0511007F7CF8 /* The ReadUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = FF6F9DAE2EEA0511007F7CF8 /* Build configuration list for PBXNativeTarget "TarotUITests" */;
+			buildConfigurationList = FF6F9DAE2EEA0511007F7CF8 /* Build configuration list for PBXNativeTarget "The ReadUITests" */;
 			buildPhases = (
 				FF6F9D9A2EEA0511007F7CF8 /* Sources */,
 				FF6F9D9B2EEA0511007F7CF8 /* Frameworks */,
@@ -156,11 +156,11 @@
 			fileSystemSynchronizedGroups = (
 				FF6F9DA12EEA0511007F7CF8 /* TarotUITests */,
 			);
-			name = TarotUITests;
+			name = "The ReadUITests";
 			packageProductDependencies = (
 			);
 			productName = TarotUITests;
-			productReference = FF6F9D9E2EEA0511007F7CF8 /* TarotUITests.xctest */;
+			productReference = FF6F9D9E2EEA0511007F7CF8 /* The ReadUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -186,7 +186,7 @@
 					};
 				};
 			};
-			buildConfigurationList = FF6F9D802EEA050F007F7CF8 /* Build configuration list for PBXProject "Tarot" */;
+			buildConfigurationList = FF6F9D802EEA050F007F7CF8 /* Build configuration list for PBXProject "The Read" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -200,9 +200,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				FF6F9D842EEA050F007F7CF8 /* Tarot */,
-				FF6F9D932EEA0511007F7CF8 /* TarotTests */,
-				FF6F9D9D2EEA0511007F7CF8 /* TarotUITests */,
+				FF6F9D842EEA050F007F7CF8 /* The Read */,
+				FF6F9D932EEA0511007F7CF8 /* The ReadTests */,
+				FF6F9D9D2EEA0511007F7CF8 /* The ReadUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -258,12 +258,12 @@
 /* Begin PBXTargetDependency section */
 		FF6F9D962EEA0511007F7CF8 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = FF6F9D842EEA050F007F7CF8 /* Tarot */;
+			target = FF6F9D842EEA050F007F7CF8 /* The Read */;
 			targetProxy = FF6F9D952EEA0511007F7CF8 /* PBXContainerItemProxy */;
 		};
 		FF6F9DA02EEA0511007F7CF8 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = FF6F9D842EEA050F007F7CF8 /* Tarot */;
+			target = FF6F9D842EEA050F007F7CF8 /* The Read */;
 			targetProxy = FF6F9D9F2EEA0511007F7CF8 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -399,7 +399,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 7864DV2B87;
+				DEVELOPMENT_TEAM = P7LH9CAUL7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -431,7 +431,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 7864DV2B87;
+				DEVELOPMENT_TEAM = P7LH9CAUL7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -474,7 +474,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Tarot.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Tarot";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/The Read.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/The Read";
 			};
 			name = Debug;
 		};
@@ -496,7 +496,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Tarot.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Tarot";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/The Read.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/The Read";
 			};
 			name = Release;
 		};
@@ -543,7 +543,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		FF6F9D802EEA050F007F7CF8 /* Build configuration list for PBXProject "Tarot" */ = {
+		FF6F9D802EEA050F007F7CF8 /* Build configuration list for PBXProject "The Read" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				FF6F9DA62EEA0511007F7CF8 /* Debug */,
@@ -552,7 +552,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		FF6F9DA82EEA0511007F7CF8 /* Build configuration list for PBXNativeTarget "Tarot" */ = {
+		FF6F9DA82EEA0511007F7CF8 /* Build configuration list for PBXNativeTarget "The Read" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				FF6F9DA92EEA0511007F7CF8 /* Debug */,
@@ -561,7 +561,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		FF6F9DAB2EEA0511007F7CF8 /* Build configuration list for PBXNativeTarget "TarotTests" */ = {
+		FF6F9DAB2EEA0511007F7CF8 /* Build configuration list for PBXNativeTarget "The ReadTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				FF6F9DAC2EEA0511007F7CF8 /* Debug */,
@@ -570,7 +570,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		FF6F9DAE2EEA0511007F7CF8 /* Build configuration list for PBXNativeTarget "TarotUITests" */ = {
+		FF6F9DAE2EEA0511007F7CF8 /* Build configuration list for PBXNativeTarget "The ReadUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				FF6F9DAF2EEA0511007F7CF8 /* Debug */,

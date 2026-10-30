@@ -41,30 +41,41 @@ struct ContentView: View {
                     VStack(alignment: .leading, spacing: 32) {
                         
                         // MARK: - Header
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("TAROT")
+                        VStack(alignment: .center, spacing: 4) {
+                            Text(Date().formatted(.dateTime.weekday(.wide).month(.wide).day()))
                                 .font(.system(size: 11, weight: .medium, design: .monospaced))
                                 .foregroundStyle(.white.opacity(0.4))
                                 .kerning(4)
-                            Text("The Reading")
+                            Text("Choose A Read")
                                 .font(.system(size: 34, weight: .light, design: .serif))
                                 .foregroundStyle(.white)
                         }
+                        .frame(maxWidth: .infinity)
                         .padding(.top, 8)
                         
                         // MARK: - Spread Buttons
-                        HStack(spacing: 10) {
-                            SpreadButton(label: "Daily", sublabel: "1 card") {
-                                drawSpread(spreadType: "daily", positions: ["Daily Card"])
+                        VStack(spacing: 10) {
+                            HStack(spacing: 10) {
+                                SpreadButton(label: "Daily", sublabel: "1 card") {
+                                    drawSpread(spreadType: "daily", positions: ["Daily Card"])
+                                }
+                                SpreadButton(label: "Three", sublabel: "3 cards") {
+                                    drawSpread(spreadType: "three_card", positions: ["Past", "Present", "Future"])
+                                }
+                                SpreadButton(label: "Four", sublabel: "Situation spread") {
+                                    drawSpread(spreadType: "four_card", positions: ["Past", "Present", "Future", "Current Situation"])
+                                }
                             }
-                            SpreadButton(label: "Three", sublabel: "3 cards") {
-                                drawSpread(spreadType: "three_card", positions: ["Past", "Present", "Future"])
-                            }
-                            SpreadButton(label: "Four", sublabel: "Situation spread") {
-                                drawSpread(spreadType: "four_card", positions: ["Past", "Present", "Future", "Current Situation"])
-                            }
-                            SpreadButton(label: "Ask", sublabel: "5 card spread") {
-                                showingQuestionInput = true
+                            HStack(spacing: 10) {
+                                SpreadButton(label: "Clarity", sublabel: "4 card spread") {
+                                    drawSpread(spreadType: "clarity", positions: ["The Situation", "Factor One", "Factor Two", "Factor Three"])
+                                }
+                                SpreadButton(label: "Ask", sublabel: "5 card spread") {
+                                    showingQuestionInput = true
+                                }
+                                SpreadButton(label: "Read Me", sublabel: "Don't hold back") {
+                                    drawSpread(spreadType: "read_me", positions: ["Past", "Present", "Future", "Current Situation"])
+                                }
                             }
                         }
                         
