@@ -1,2 +1,10 @@
+# API Configuration
 Tarot/Config.plist
 Tarot/Tarot/Config.plist
+
+# macOS
+.DS_Store
+
+# Xcode User Settings
+xcuserdata/
+*.xcuserstate
