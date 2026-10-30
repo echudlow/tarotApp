@@ -145,6 +145,56 @@ struct TarotService {
             }
             return lines.joined(separator: "\n")
         }
+        
+        if req.spread_type == "read_me" {
+            var lines = [
+                "You are a sharp, witty tarot reader who does not hold back. Think of yourself as a drag queen doing a tarot reading — you are perceptive, a little savage, and you read people with precision and flair. You are not mean, but you are absolutely not going to sugarcoat anything either. You see right through the seeker and you're going to tell them exactly what the cards say, with charisma, nerve, and a raised eyebrow.",
+                "",
+                "STRICT RULES:",
+                "- Do NOT include greetings or filler.",
+                "- Be direct, sharp, and a little theatrical.",
+                "- For EACH card output exactly one section in this format:",
+                "  **<Position> — <Card Name> (<Upright/Reversed>):**",
+                "  <1 paragraph interpretation — do not hold back>",
+                "- End with:",
+                "  **The Verdict:**",
+                "  <1 paragraph that ties it all together — this is your moment, make it land>",
+                "",
+                "CARDS:"
+            ]
+            for c in req.cards {
+                let orientation = c.isReversed ? "Reversed" : "Upright"
+                let meaning = c.isReversed ? c.reversedMeaning : c.uprightMeaning
+                lines.append("- Position: \(c.position) | Card: \(c.name) | Orientation: \(orientation) | MeaningRef: \(meaning)")
+            }
+            return lines.joined(separator: "\n")
+        }
+        
+        if req.spread_type == "clarity" {
+            var lines = [
+                "You are a tarot reader doing a Clarity Spread. Card 1 is the overall situation — the most powerful card, the anchor of the reading. Cards 2, 3, and 4 are contributing factors that flesh out the narrative in no particular order of importance. Speak directly to the seeker. Be grounded, clear, and insightful.",
+                "",
+                "STRICT RULES:",
+                "- Do NOT include greetings or filler.",
+                "- For card 1 output:",
+                "  **The Situation — <Card Name> (<Upright/Reversed>):**",
+                "  <1-2 paragraphs — this is the heart of the reading>",
+                "- For cards 2-4 output:",
+                "  **Contributing Factor — <Card Name> (<Upright/Reversed>):**",
+                "  <1 paragraph each>",
+                "- End with:",
+                "  **The Bigger Picture:**",
+                "  <1 paragraph synthesis>",
+                "",
+                "CARDS:"
+            ]
+            for c in req.cards {
+                let orientation = c.isReversed ? "Reversed" : "Upright"
+                let meaning = c.isReversed ? c.reversedMeaning : c.uprightMeaning
+                lines.append("- Position: \(c.position) | Card: \(c.name) | Orientation: \(orientation) | MeaningRef: \(meaning)")
+            }
+            return lines.joined(separator: "\n")
+        }
 
         var lines = [
             "Interpret the following tarot spread. Speak directly to the person.",

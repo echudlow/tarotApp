@@ -44,6 +44,8 @@ class Reading {
         case "daily": return "Daily Card"
         case "three_card": return "Three Card Spread"
         case "four_card": return "Four Card Spread"
+        case "clarity": return "Clarity Spread"
+        case "read_me": return "Read Me"
         default: return spreadType.capitalized
         }
     }
