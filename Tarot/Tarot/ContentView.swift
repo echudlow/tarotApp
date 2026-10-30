@@ -29,6 +29,7 @@ struct ContentView: View {
     @State private var previewCards: [DrawnCard] = []
     @State private var revealedCards: Set<Int> = []
     @State private var loadingPulse: Bool = false
+    @State private var currentSpreadType: String = ""
     
     private let tarotService = TarotService()
     
@@ -82,7 +83,7 @@ struct ContentView: View {
                         // MARK: - Current Spread
                         if spread.isEmpty {
                             if !previewCards.isEmpty {
-                                CardFanView(spread: previewCards, isHomePreview: true)
+                                CardFanView(spread: previewCards, isHomePreview: true, spreadType: "")
                                     .padding(.vertical, 24)
                             }
                             Text("Choose a spread to begin")
@@ -91,9 +92,8 @@ struct ContentView: View {
                                 .frame(maxWidth: .infinity)
                                 .padding(.bottom, 24)
                         } else {
-                            // Card an display
                             if spread.count > 1 {
-                                CardFanView(spread: spread, isHomePreview: false)
+                                CardFanView(spread: spread, isHomePreview: false, spreadType: currentSpreadType)
                             }
                             
                             VStack(spacing: 16) {
@@ -110,49 +110,91 @@ struct ContentView: View {
                                 
                                 if isLoadingInterpretation {
                                     VStack(spacing: 20) {
-                                        HStack(spacing: 8) {
-                                            ForEach(Array(spread.enumerated()), id: \.offset) { index, drawn in
+                                        if currentSpreadType == "clarity" {
+                                            VStack(spacing: 8) {
+                                                // Card 1 on top
                                                 ZStack {
                                                     Image("CardBacks")
                                                         .resizable()
                                                         .aspectRatio(2/3, contentMode: .fit)
-                                                        .frame(width: spread.count == 1 ? 120 : 58)
+                                                        .frame(width: 72)
                                                         .cornerRadius(6)
-                                                        .rotation3DEffect(
-                                                            .degrees(revealedCards.contains(index) ? 90 : 0),
-                                                            axis: (x: 0, y: 1, z: 0)
-                                                        )
-                                                        .opacity(revealedCards.contains(index) ? 0 : 1)
-                                                        .animation(.easeInOut(duration: 0.3).delay(Double(index) * 0.4), value: revealedCards.contains(index))
-
-                                                    if let imageName = drawn.card.imageName {
+                                                        .rotation3DEffect(.degrees(revealedCards.contains(0) ? 90 : 0), axis: (x: 0, y: 1, z: 0))
+                                                        .opacity(revealedCards.contains(0) ? 0 : 1)
+                                                        .animation(.easeInOut(duration: 0.3), value: revealedCards.contains(0))
+                                                    if let imageName = spread[0].card.imageName {
                                                         Image(imageName)
+                                                            .resizable()
+                                                            .aspectRatio(2/3, contentMode: .fit)
+                                                            .frame(width: 72)
+                                                            .cornerRadius(6)
+                                                            .rotationEffect(spread[0].isReversed ? .degrees(180) : .degrees(0))
+                                                            .rotation3DEffect(.degrees(revealedCards.contains(0) ? 0 : -90), axis: (x: 0, y: 1, z: 0))
+                                                            .opacity(revealedCards.contains(0) ? 1 : 0)
+                                                            .animation(.easeInOut(duration: 0.3).delay(0.3), value: revealedCards.contains(0))
+                                                    }
+                                                }
+                                                // Cards 2-4 below
+                                                HStack(spacing: 8) {
+                                                    ForEach(1..<4) { index in
+                                                        ZStack {
+                                                            Image("CardBacks")
+                                                                .resizable()
+                                                                .aspectRatio(2/3, contentMode: .fit)
+                                                                .frame(width: 72)
+                                                                .cornerRadius(6)
+                                                                .rotation3DEffect(.degrees(revealedCards.contains(index) ? 90 : 0), axis: (x: 0, y: 1, z: 0))
+                                                                .opacity(revealedCards.contains(index) ? 0 : 1)
+                                                                .animation(.easeInOut(duration: 0.3).delay(Double(index) * 0.4), value: revealedCards.contains(index))
+                                                            if spread.indices.contains(index), let imageName = spread[index].card.imageName {
+                                                                Image(imageName)
+                                                                    .resizable()
+                                                                    .aspectRatio(2/3, contentMode: .fit)
+                                                                    .frame(width: 72)
+                                                                    .cornerRadius(6)
+                                                                    .rotationEffect(spread[index].isReversed ? .degrees(180) : .degrees(0))
+                                                                    .rotation3DEffect(.degrees(revealedCards.contains(index) ? 0 : -90), axis: (x: 0, y: 1, z: 0))
+                                                                    .opacity(revealedCards.contains(index) ? 1 : 0)
+                                                                    .animation(.easeInOut(duration: 0.3).delay(Double(index) * 0.4 + 0.3), value: revealedCards.contains(index))
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            HStack(spacing: 8) {
+                                                ForEach(Array(spread.enumerated()), id: \.offset) { index, drawn in
+                                                    ZStack {
+                                                        Image("CardBacks")
                                                             .resizable()
                                                             .aspectRatio(2/3, contentMode: .fit)
                                                             .frame(width: spread.count == 1 ? 120 : 58)
                                                             .cornerRadius(6)
-                                                            .rotationEffect(drawn.isReversed ? .degrees(180) : .degrees(0))
                                                             .rotation3DEffect(
-                                                                .degrees(revealedCards.contains(index) ? 0 : -90),
+                                                                .degrees(revealedCards.contains(index) ? 90 : 0),
                                                                 axis: (x: 0, y: 1, z: 0)
                                                             )
-                                                            .opacity(revealedCards.contains(index) ? 1 : 0)
-                                                            .animation(.easeInOut(duration: 0.3).delay(Double(index) * 0.4 + 0.3), value: revealedCards.contains(index))
+                                                            .opacity(revealedCards.contains(index) ? 0 : 1)
+                                                            .animation(.easeInOut(duration: 0.3).delay(Double(index) * 0.4), value: revealedCards.contains(index))
+                                                        if let imageName = drawn.card.imageName {
+                                                            Image(imageName)
+                                                                .resizable()
+                                                                .aspectRatio(2/3, contentMode: .fit)
+                                                                .frame(width: spread.count == 1 ? 120 : 58)
+                                                                .cornerRadius(6)
+                                                                .rotationEffect(drawn.isReversed ? .degrees(180) : .degrees(0))
+                                                                .rotation3DEffect(
+                                                                    .degrees(revealedCards.contains(index) ? 0 : -90),
+                                                                    axis: (x: 0, y: 1, z: 0)
+                                                                )
+                                                                .opacity(revealedCards.contains(index) ? 1 : 0)
+                                                                .animation(.easeInOut(duration: 0.3).delay(Double(index) * 0.4 + 0.3), value: revealedCards.contains(index))
+                                                        }
                                                     }
                                                 }
                                             }
                                         }
-                                        .onAppear {
-                                            for i in 0..<spread.count {
-                                                DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 1.2) {
-                                                    revealedCards.insert(i)
-                                                }
-                                            }
-                                        }
-                                        .onDisappear {
-                                            revealedCards.removeAll()
-                                        }
-
+                                        
                                         Text("Reading the cards…")
                                             .font(.system(size: 11, weight: .light, design: .monospaced))
                                             .foregroundStyle(.white.opacity(loadingPulse ? 0.5 : 0.2))
@@ -160,6 +202,16 @@ struct ContentView: View {
                                             .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: loadingPulse)
                                             .onAppear { loadingPulse = true }
                                             .onDisappear { loadingPulse = false }
+                                    }
+                                    .onAppear {
+                                        for i in 0..<spread.count {
+                                            DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 1.2) {
+                                                revealedCards.insert(i)
+                                            }
+                                        }
+                                    }
+                                    .onDisappear {
+                                        revealedCards.removeAll()
                                     }
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 24)
@@ -265,6 +317,7 @@ struct ContentView: View {
         }
         
         spread = newSpread
+        currentSpreadType = spreadType
         interpretation = nil
         interpretationError = nil
         isLoadingInterpretation = true
@@ -304,7 +357,6 @@ struct ContentView: View {
             let response = try await tarotService.interpretSpread(body)
             guard activeRequestID == requestID else { return }
             interpretation = response.interpretation
-            // Save to history
             let reading = Reading(
                 spreadType: spreadType,
                 cardNames: spreadSnapshot.map { $0.card.name },
@@ -321,6 +373,7 @@ struct ContentView: View {
             print("Interpretation error:", error)
         }
     }
+    
     private func drawQuestionSpread(question: String) {
         guard cards.count >= 5 else { return }
         
@@ -338,6 +391,7 @@ struct ContentView: View {
         }
         
         spread = newSpread
+        currentSpreadType = "question"
         interpretation = nil
         interpretationError = nil
         isLoadingInterpretation = true
@@ -428,7 +482,7 @@ struct ContentView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(maxWidth: .infinity, maxHeight: 300)
-                        .aspectRatio(2/3,contentMode: .fit)
+                        .aspectRatio(2/3, contentMode: .fit)
                         .rotationEffect(drawn.isReversed ? .degrees(180) : .degrees(0))
                         .cornerRadius(6)
                         .opacity(0.9)
@@ -455,15 +509,15 @@ struct ContentView: View {
                 .modelContainer(for: TarotCard.self, inMemory: true)
         }
     }
+    
     struct CardFanView: View {
         let spread: [DrawnCard]
         let isHomePreview: Bool
+        let spreadType: String
         
         var body: some View {
             let count = spread.count
-            let _ = print("CardFanView count: \(count), isHomePreview: \(isHomePreview)")
             if count == 1 {
-                // Single card — centered, no rotation
                 if let imageName = spread[0].card.imageName {
                     Image(imageName)
                         .resizable()
@@ -474,21 +528,47 @@ struct ContentView: View {
                         .padding(.vertical, 8)
                 }
             } else if count <= 4 {
-                // Straight line, evenly spaced
-                HStack(spacing: 12) {
-                    ForEach(Array(spread.enumerated()), id: \.offset) { _, drawn in
-                        if let imageName = drawn.card.imageName {
+                if spreadType == "clarity" {
+                    VStack(spacing: 12) {
+                        if let imageName = spread[0].card.imageName {
                             Image(imageName)
                                 .resizable()
                                 .aspectRatio(2/3, contentMode: .fit)
-                                .frame(width: count == 3 ? 90 : 78)
+                                .frame(width: 78)
                                 .cornerRadius(6)
-                                .rotationEffect(.degrees(drawn.isReversed ? 180 : 0))
+                                .rotationEffect(.degrees(spread[0].isReversed ? 180 : 0))
+                        }
+                        HStack(spacing: 12) {
+                            ForEach(Array(spread[1...].enumerated()), id: \.offset) { _, drawn in
+                                if let imageName = drawn.card.imageName {
+                                    Image(imageName)
+                                        .resizable()
+                                        .aspectRatio(2/3, contentMode: .fit)
+                                        .frame(width: 78)
+                                        .cornerRadius(6)
+                                        .rotationEffect(.degrees(drawn.isReversed ? 180 : 0))
+                                }
+                            }
                         }
                     }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                } else {
+                    HStack(spacing: 12) {
+                        ForEach(Array(spread.enumerated()), id: \.offset) { _, drawn in
+                            if let imageName = drawn.card.imageName {
+                                Image(imageName)
+                                    .resizable()
+                                    .aspectRatio(2/3, contentMode: .fit)
+                                    .frame(width: count == 3 ? 90 : 78)
+                                    .cornerRadius(6)
+                                    .rotationEffect(.degrees(drawn.isReversed ? 180 : 0))
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
             } else {
                 if isHomePreview {
                     let arcAngles: [Double] = [-20, -10, 0, 10, 20]
@@ -514,29 +594,28 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
                 } else {
-                    // V-shape layout for active 5-card spread
-                        let vOffsets: [CGFloat] = [-30, -15, 0, -15, -30]
-                        let spacing: CGFloat = 58
-                        let totalWidth = spacing * 4
-                        let startX: CGFloat = -(totalWidth / 2)
-                        
-                        ZStack {
-                            ForEach(Array(spread.enumerated()), id: \.offset) { index, drawn in
-                                if let imageName = drawn.card.imageName {
-                                    Image(imageName)
-                                        .resizable()
-                                        .aspectRatio(2/3, contentMode: .fit)
-                                        .frame(width: 58)
-                                        .cornerRadius(5)
-                                        .rotationEffect(.degrees(drawn.isReversed ? 180 : 0))
-                                        .offset(x: startX + CGFloat(index) * spacing, y: vOffsets[index])
-                                }
+                    let vOffsets: [CGFloat] = [-30, -15, 0, -15, -30]
+                    let spacing: CGFloat = 58
+                    let totalWidth = spacing * 4
+                    let startX: CGFloat = -(totalWidth / 2)
+                    
+                    ZStack {
+                        ForEach(Array(spread.enumerated()), id: \.offset) { index, drawn in
+                            if let imageName = drawn.card.imageName {
+                                Image(imageName)
+                                    .resizable()
+                                    .aspectRatio(2/3, contentMode: .fit)
+                                    .frame(width: 58)
+                                    .cornerRadius(5)
+                                    .rotationEffect(.degrees(drawn.isReversed ? 180 : 0))
+                                    .offset(x: startX + CGFloat(index) * spacing, y: vOffsets[index])
                             }
                         }
-                        .frame(height: 160)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
                     }
+                    .frame(height: 160)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                }
             }
         }
     }
