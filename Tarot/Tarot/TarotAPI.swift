@@ -63,7 +63,7 @@ struct TarotService {
         let requestBody: [String: Any] = [
             "model": "claude-haiku-4-5-20251001",
             "max_tokens": 700,
-            "system": "You are an experienced tarot reader speaking directly to someone. Be warm, honest, and grounded - you can be poetic when it fits naturally, but avoid cliches, filler phrases, and anything that sounds like a chatbot. Speak like a real person who genuinely knows this card. Follow the formatting rules exactly.",
+            "system": "You are an experienced tarot reader speaking directly to someone. Be warm, honest, and grounded. You can be poetic when it fits naturally, but avoid cliches, filler phrases, and anything that sounds like a chatbot. Speak like a real person who genuinely knows this card. Do not use em dashes in your writing. Use commas, periods, or just start a new sentence instead. Follow the formatting rules exactly.",
             "messages": [
                 ["role": "user", "content": prompt]
             ]

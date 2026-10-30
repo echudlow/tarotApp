@@ -27,6 +27,8 @@ struct ContentView: View {
     @State private var showingQuestionInput = false
     @State private var questionText = ""
     @State private var previewCards: [DrawnCard] = []
+    @State private var revealedCards: Set<Int> = []
+    @State private var loadingPulse: Bool = false
     
     private let tarotService = TarotService()
     
@@ -96,14 +98,60 @@ struct ContentView: View {
                                     .frame(height: 1)
                                 
                                 if isLoadingInterpretation {
-                                    HStack(spacing: 10) {
-                                        ProgressView()
-                                            .tint(.white.opacity(0.5))
+                                    VStack(spacing: 20) {
+                                        HStack(spacing: 8) {
+                                            ForEach(Array(spread.enumerated()), id: \.offset) { index, drawn in
+                                                ZStack {
+                                                    Image("CardBacks")
+                                                        .resizable()
+                                                        .aspectRatio(2/3, contentMode: .fit)
+                                                        .frame(width: spread.count == 1 ? 120 : 58)
+                                                        .cornerRadius(6)
+                                                        .rotation3DEffect(
+                                                            .degrees(revealedCards.contains(index) ? 90 : 0),
+                                                            axis: (x: 0, y: 1, z: 0)
+                                                        )
+                                                        .opacity(revealedCards.contains(index) ? 0 : 1)
+                                                        .animation(.easeInOut(duration: 0.3).delay(Double(index) * 0.4), value: revealedCards.contains(index))
+
+                                                    if let imageName = drawn.card.imageName {
+                                                        Image(imageName)
+                                                            .resizable()
+                                                            .aspectRatio(2/3, contentMode: .fit)
+                                                            .frame(width: spread.count == 1 ? 120 : 58)
+                                                            .cornerRadius(6)
+                                                            .rotationEffect(drawn.isReversed ? .degrees(180) : .degrees(0))
+                                                            .rotation3DEffect(
+                                                                .degrees(revealedCards.contains(index) ? 0 : -90),
+                                                                axis: (x: 0, y: 1, z: 0)
+                                                            )
+                                                            .opacity(revealedCards.contains(index) ? 1 : 0)
+                                                            .animation(.easeInOut(duration: 0.3).delay(Double(index) * 0.4 + 0.3), value: revealedCards.contains(index))
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        .onAppear {
+                                            for i in 0..<spread.count {
+                                                DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 1.2) {
+                                                    revealedCards.insert(i)
+                                                }
+                                            }
+                                        }
+                                        .onDisappear {
+                                            revealedCards.removeAll()
+                                        }
+
                                         Text("Reading the cards…")
-                                            .font(.system(size: 13, weight: .light))
-                                            .foregroundStyle(.white.opacity(0.4))
+                                            .font(.system(size: 11, weight: .light, design: .monospaced))
+                                            .foregroundStyle(.white.opacity(loadingPulse ? 0.5 : 0.2))
+                                            .kerning(3)
+                                            .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: loadingPulse)
+                                            .onAppear { loadingPulse = true }
+                                            .onDisappear { loadingPulse = false }
                                     }
-                                    .padding(.vertical, 8)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 24)
                                     
                                 } else if let error = interpretationError {
                                     Text("Could not interpret this spread: \(error)")
