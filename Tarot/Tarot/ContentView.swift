@@ -30,7 +30,6 @@ struct ContentView: View {
     @State private var revealedCards: Set<Int> = []
     @State private var loadingPulse: Bool = false
     @State private var currentSpreadType: String = ""
-    @State private var revealTask: Task<Void, Never>? = nil
     @State private var shareItems: ShareItems? = nil
     @State private var detailCard: TarotCard? = nil
     @State private var focusedIndex: Int? = nil
@@ -360,6 +359,17 @@ struct ContentView: View {
         (try? AttributedString(markdown: text, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(text)
     }
     
+    private func trimPartialHeader(_ text: String) -> String {
+        var lines = text.components(separatedBy: "\n")
+        if let last = lines.last {
+            let t = last.trimmingCharacters(in: .whitespaces)
+            if t.hasPrefix("**") && !(t.hasSuffix("**") && t.count > 4) {
+                lines.removeLast()
+            }
+        }
+        return lines.joined(separator: "\n")
+    }
+    
     private var parsedSections: [InterpretationSection] {
         guard let text = interpretation else { return [] }
         return parseInterpretationSections(text)
@@ -391,6 +401,7 @@ struct ContentView: View {
         interpretationError = nil
         isLoadingInterpretation = true
         resetReveal()
+        dealHaptics(newSpread.count)
         interpretTask?.cancel()
         
         let requestID = UUID()
@@ -425,7 +436,18 @@ struct ContentView: View {
         
         let started = Date()
         do {
-            let response = try await tarotService.interpretSpread(body)
+            let response: SpreadResponseBody
+            do {
+                response = try await tarotService.streamSpread(body) { partial in
+                    guard activeRequestID == requestID else { return }
+                    interpretation = trimPartialHeader(partial)
+                }
+            } catch {
+                if Task.isCancelled { throw error }
+                // Stream failed, fall back to the normal call
+                interpretation = nil
+                response = try await tarotService.interpretSpread(body)
+            }
             recordTiming(spreadType, Date().timeIntervalSince(started))
             guard activeRequestID == requestID else { return }
             interpretation = response.interpretation
@@ -561,6 +583,7 @@ struct ContentView: View {
         interpretationError = nil
         isLoadingInterpretation = true
         resetReveal()
+        dealHaptics(newSpread.count)
         interpretTask?.cancel()
         
         let requestID = UUID()

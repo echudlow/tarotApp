@@ -34,6 +34,7 @@ struct SpreadResponseBody: Codable {
 // MARK: - Anthropic response models
 struct AnthropicResponse: Codable {
     let content: [AnthropicContent]
+    let stop_reason: String?
 }
 
 struct AnthropicContent: Codable {
@@ -46,6 +47,7 @@ struct TarotService {
 
     private let apiKey: String
     private let apiURL = URL(string: "https://api.anthropic.com/v1/messages")!
+    private let systemPrompt = "...paste your existing system prompt text here..."
 
     init() {
         if let path = Bundle.main.path(forResource: "Config", ofType: "plist"),
@@ -56,25 +58,26 @@ struct TarotService {
             fatalError("Missing Config.plist or ANTHROPIC_API_KEY")
         }
     }
-
-    func interpretSpread(_ body: SpreadRequestBody) async throws -> SpreadResponseBody {
-        let prompt = buildPrompt(body)
-
+    
+    private func makeRequest(_ body: SpreadRequestBody, stream: Bool) throws -> URLRequest {
         let requestBody: [String: Any] = [
             "model": "claude-haiku-4-5-20251001",
             "max_tokens": 700,
-            "system": "You are an experienced tarot reader speaking directly to someone. Be warm, honest, and grounded. You can be poetic when it fits naturally, but avoid cliches, filler phrases, and anything that sounds like a chatbot. Speak like a real person who genuinely knows this card. Do not use em dashes in your writing. Use commas, periods, or just start a new sentence instead. Follow the formatting rules exactly. Plese try to not sound like AI.",
-            "messages": [
-                ["role": "user", "content": prompt]
-            ]
+            "stream": stream,
+            "system": systemPrompt,
+            "messages": [["role": "user", "content": buildPrompt(body)]]
         ]
-
         var request = URLRequest(url: apiURL)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        return request
+    }
+
+    func interpretSpread(_ body: SpreadRequestBody) async throws -> SpreadResponseBody {
+        let request = try makeRequest(body, stream: false)
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -85,9 +88,60 @@ struct TarotService {
         }
 
         let decoded = try JSONDecoder().decode(AnthropicResponse.self, from: data)
+        if decoded.stop_reason == "max_tokens" {
+            print("[warn] \(body.spread_type) hit max_tokens, the reading was cut off")
+        }
         let text = decoded.content.first?.text ?? "I couldn't interpret this spread right now."
 
         return SpreadResponseBody(interpretation: normalizeOutput(body, text: text))
+    }
+    
+    func streamSpread(_ body: SpreadRequestBody,
+                      onUpdate: @MainActor @Sendable (String) -> Void) async throws -> SpreadResponseBody {
+        let started = Date()
+        let request = try makeRequest(body, stream: true)
+        let (bytes, response) = try await URLSession.shared.bytes(for: request)
+
+        if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
+            var errorText = ""
+            for try await line in bytes.lines { errorText += line }
+            throw NSError(domain: "TarotService", code: http.statusCode,
+                          userInfo: [NSLocalizedDescriptionKey: "API error: \(errorText)"])
+        }
+        
+        var gotFirst = false
+        var full = ""
+
+        for try await line in bytes.lines {
+            guard line.hasPrefix("data: ") else { continue }
+            guard let data = String(line.dropFirst(6)).data(using: .utf8),
+                  let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let type = obj["type"] as? String else { continue }
+
+            switch type {
+            case "content_block_delta":
+                if let delta = obj["delta"] as? [String: Any], let piece = delta["text"] as? String {
+                    if !gotFirst {
+                        gotFirst = true
+                        print("[timing] \(body.spread_type) first text after \(String(format: "%.1f", Date().timeIntervalSince(started)))s")
+                    }
+                    full += piece
+                    onUpdate(full)
+                }
+            case "message_delta":
+                if let delta = obj["delta"] as? [String: Any],
+                   delta["stop_reason"] as? String == "max_tokens" {
+                    print("[warn] \(body.spread_type) hit max_tokens, the reading was cut off")
+                }
+            case "error":
+                throw NSError(domain: "TarotService", code: -1,
+                              userInfo: [NSLocalizedDescriptionKey: "Stream error"])
+            default:
+                break
+            }
+        }
+
+        return SpreadResponseBody(interpretation: normalizeOutput(body, text: full))
     }
 
     // MARK: - Prompt building
