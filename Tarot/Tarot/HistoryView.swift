@@ -132,6 +132,9 @@ struct HistoryView: View {
                 }
             }
         }
+        .sheet(item: $selectedReading) { reading in
+            ReadingDetailSheet(reading: reading, cards: cards)
+        }
         .alert(isSelecting ? "Delete Selected Readings?" : "Clear All Readings?", isPresented: $showingDeleteAllAlert) {
             Button("Delete", role: .destructive) {
                 if isSelecting {
@@ -253,12 +256,20 @@ struct ReadingHistoryRow: View {
 struct ReadingDetailSheet: View {
     let reading: Reading
     let cards: [TarotCard]
+    @State private var selectedCard: TarotCard? = nil
 
-    var formattedDate: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .long
-        formatter.timeStyle = .short
-        return formatter.string(from: reading.date)
+    // Rebuild the drawn spread from what was saved
+    private var drawnCards: [DrawnCard] {
+        reading.cardNames.enumerated().compactMap { index, name in
+            guard let card = cards.first(where: { $0.name == name }) else { return nil }
+            let position = reading.cardPositions.indices.contains(index) ? reading.cardPositions[index] : ""
+            let reversed = reading.cardReversals.indices.contains(index) ? reading.cardReversals[index] : false
+            return DrawnCard(card: card, isReversed: reversed, position: position)
+        }
+    }
+
+    private var sections: [InterpretationSection] {
+        parseInterpretationSections(reading.interpretation)
     }
 
     var body: some View {
@@ -266,105 +277,37 @@ struct ReadingDetailSheet: View {
             Color.black.ignoresSafeArea()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-
+                VStack(spacing: 0) {
                     // Handle
-                    HStack {
-                        Spacer()
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(.white.opacity(0.2))
-                            .frame(width: 36, height: 4)
-                        Spacer()
-                    }
-                    .padding(.top, 12)
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(.white.opacity(0.2))
+                        .frame(width: 36, height: 4)
+                        .padding(.top, 12)
 
-                    // Header
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(reading.spreadDisplayName.uppercased())
-                            .font(.system(size: 10, weight: .medium, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.35))
-                            .kerning(3)
-                        Text(formattedDate)
-                            .font(.system(size: 22, weight: .light, design: .serif))
-                            .foregroundStyle(.white)
-                        if let question = reading.question {
-                            Text("\"\(question)\"")
-                                .font(.system(size: 16, weight: .light, design: .serif))
-                                .foregroundStyle(.white.opacity(0.6))
-                                .italic()
-                                .padding(.top, 4)
+                    ShareCardView(
+                        spreadName: reading.spreadDisplayName,
+                        spreadType: reading.spreadType,
+                        cards: drawnCards,
+                        question: reading.question,
+                        closingHeader: "Interpretation",
+                        closingText: reading.interpretation.replacingOccurrences(of: "**", with: ""),
+                        date: reading.date,
+                        sections: sections,
+                        fillWidth: true,
+                        showFooter: false,
+                        onCardTap: { drawn in
+                            Haptics.tap()
+                            selectedCard = drawn.card
                         }
-                    }
-
-                    Rectangle()
-                        .fill(.white.opacity(0.1))
-                        .frame(height: 1)
-
-                    // Cards
-                    VStack(spacing: 16) {
-                        ForEach(Array(reading.cardNames.enumerated()), id: \.offset) { index, name in
-                            let card = cards.first(where: { $0.name == name })
-                            let position = reading.cardPositions.indices.contains(index) ? reading.cardPositions[index] : ""
-                            let isReversed = reading.cardReversals.indices.contains(index) ? reading.cardReversals[index] : false
-
-                            HStack(spacing: 14) {
-                                if let imageName = card?.imageName {
-                                    Image(imageName)
-                                        .resizable()
-                                        .aspectRatio(2/3, contentMode: .fit)
-                                        .frame(width: 60)
-                                        .cornerRadius(6)
-                                        .rotationEffect(isReversed ? .degrees(180) : .degrees(0))
-                                }
-
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(position.uppercased())
-                                        .font(.system(size: 9, weight: .medium, design: .monospaced))
-                                        .foregroundStyle(.white.opacity(0.35))
-                                        .kerning(2)
-                                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                                        Text(name)
-                                            .font(.system(size: 16, weight: .light, design: .serif))
-                                            .foregroundStyle(.white)
-                                        if isReversed {
-                                            Text("reversed")
-                                                .font(.system(size: 11, weight: .light, design: .serif))
-                                                .foregroundStyle(.white.opacity(0.4))
-                                                .italic()
-                                        }
-                                    }
-                                }
-                                Spacer()
-                            }
-                        }
-                    }
-
-                    Rectangle()
-                        .fill(.white.opacity(0.1))
-                        .frame(height: 1)
-
-                    // Interpretation
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("INTERPRETATION")
-                            .font(.system(size: 10, weight: .medium, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.35))
-                            .kerning(3)
-
-                        Text(parseMarkdown(reading.interpretation))
-                            .font(.system(size: 15, weight: .light, design: .serif))
-                            .foregroundStyle(.white.opacity(0.85))
-                            .lineSpacing(6)
-                    }
+                    )
 
                     Spacer(minLength: 40)
                 }
-                .padding(.horizontal, 24)
             }
         }
         .preferredColorScheme(.dark)
-    }
-
-    private func parseMarkdown(_ text: String) -> AttributedString {
-        (try? AttributedString(markdown: text, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(text)
+        .sheet(item: $selectedCard) { card in
+            CardDetailSheet(card: card)
+        }
     }
 }

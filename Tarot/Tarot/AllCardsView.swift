@@ -51,7 +51,11 @@ struct AllCardsView: View {
         }
     }
 
-    let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
+    let columns = [
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 12)
+    ]
 
     var body: some View {
         ZStack {
@@ -113,7 +117,7 @@ struct AllCardsView: View {
                                 .fill(.white.opacity(0.08))
                                 .frame(height: 0.5)
 
-                            LazyVGrid(columns: columns, spacing: 12) {
+                            LazyVGrid(columns: columns, spacing: 20) {
                                 ForEach(section.cards) { card in
                                     CardGridItem(card: card)
                                         .onTapGesture {
@@ -142,31 +146,34 @@ struct CardGridItem: View {
     let card: TarotCard
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if let imageName = card.imageName {
-                Image(imageName)
-                    .resizable()
-                    .aspectRatio(2/3, contentMode: .fit)
-                    .frame(maxWidth: .infinity, maxHeight: 120)
-                    .cornerRadius(6)
-                    .clipped()
-            } else {
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(.white.opacity(0.06))
-                    .aspectRatio(2/3, contentMode: .fit)
-                    .overlay(
-                        Text("?")
-                            .foregroundStyle(.white.opacity(0.2))
-                            .font(.system(size: 20, weight: .light))
-                    )
+        VStack(spacing: 8) {
+            Group {
+                if let imageName = card.imageName {
+                    Image(imageName)
+                        .resizable()
+                        .aspectRatio(2/3, contentMode: .fit)
+                } else {
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(.white.opacity(0.06))
+                        .aspectRatio(2/3, contentMode: .fit)
+                        .overlay(
+                            Text("?")
+                                .font(.system(size: 20, weight: .light))
+                                .foregroundStyle(.white.opacity(0.2))
+                        )
+                }
             }
+            .cornerRadius(5)
+            .frame(maxWidth: .infinity)
 
             Text(card.name)
-                .font(.system(size: 10, weight: .light, design: .serif))
-                .foregroundStyle(.white.opacity(0.7))
+                .font(.system(size: 11, weight: .light, design: .serif))
+                .foregroundStyle(.white.opacity(0.75))
+                .multilineTextAlignment(.center)
                 .lineLimit(2)
-                .minimumScaleFactor(0.8)
+                .frame(maxWidth: .infinity, minHeight: 28, alignment: .top)
         }
+        .contentShape(Rectangle())
     }
 }
 
