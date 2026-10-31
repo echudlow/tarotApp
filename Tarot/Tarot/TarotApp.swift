@@ -11,6 +11,10 @@ import UserNotifications
 
 @main
 struct TarotApp: App {
+    init() {
+        UNUserNotificationCenter.current().delegate = NotificationHandler.shared
+    }
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
