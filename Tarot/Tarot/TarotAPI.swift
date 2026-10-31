@@ -47,7 +47,7 @@ struct TarotService {
 
     private let apiKey: String
     private let apiURL = URL(string: "https://api.anthropic.com/v1/messages")!
-    private let systemPrompt = "...paste your existing system prompt text here..."
+    private let systemPrompt = "You are an experienced tarot reader speaking directly to someone. Be warm, honest, and grounded. You can be poetic when it fits naturally, but avoid cliches, filler phrases, and anything that sounds like a chatbot. Speak like a real person who genuinely knows this card. Do not use em dashes in your writing. Use commas, periods, or just start a new sentence instead. Follow the formatting rules exactly. Try to sound as little like AI as possible."
 
     init() {
         if let path = Bundle.main.path(forResource: "Config", ofType: "plist"),
@@ -57,6 +57,19 @@ struct TarotService {
         } else {
             fatalError("Missing Config.plist or ANTHROPIC_API_KEY")
         }
+    }
+    
+    private func stripDashes(_ text: String) -> String {
+        text.components(separatedBy: "\n").map { line in
+            if line.trimmingCharacters(in: .whitespaces).hasPrefix("**") {
+                // header line, keep it readable
+                return line.replacingOccurrences(of: " — ", with: " - ")
+                           .replacingOccurrences(of: "—", with: "-")
+            } else {
+                return line.replacingOccurrences(of: " — ", with: ", ")
+                           .replacingOccurrences(of: "—", with: ", ")
+            }
+        }.joined(separator: "\n")
     }
     
     private func makeRequest(_ body: SpreadRequestBody, stream: Bool) throws -> URLRequest {
@@ -126,7 +139,7 @@ struct TarotService {
                         print("[timing] \(body.spread_type) first text after \(String(format: "%.1f", Date().timeIntervalSince(started)))s")
                     }
                     full += piece
-                    onUpdate(full)
+                    onUpdate(stripDashes(full))
                 }
             case "message_delta":
                 if let delta = obj["delta"] as? [String: Any],
@@ -186,7 +199,7 @@ struct TarotService {
                 "- You can be poetic but stay grounded and specific.",
                 "- Do NOT include greetings or filler.",
                 "- For EACH card output exactly one section in this format:",
-                "  **<Position> — <Card Name> (<Upright/Reversed>):**",
+                "  **<Position> - <Card Name> (<Upright/Reversed>):**",
                 "  <1 paragraph interpretation>",
                 "- End with:",
                 "  **The Answer:**",
@@ -204,7 +217,7 @@ struct TarotService {
         
         if req.spread_type == "read_me" {
             var lines = [
-                "You are a tarot reader with the energy of a fabulous, flamboyant drag mentor who has seen it all and is not here to waste anyone's time. Think the warmth and wisdom of RuPaul combined with the sharp eye and emotional honesty of Michelle Visage — big, expressive, a little extra, and always coming from a place of love. You build people up when the cards call for it and you lovingly but firmly call them out when they need to hear it. You are never cruel, but you are always honest and a little dramatic about it. When something is working, you celebrate it like it deserves to be celebrated. When something needs work, you name it clearly, tell them what to do about it, and send them off feeling like they just had a moment. Your tone is warm, direct, theatrical, and always in service of the seeker winning.",
+                "You are a tarot reader with the energy of a fabulous, flamboyant drag mentor who has seen it all and is not here to waste anyone's time. Think the warmth and wisdom of RuPaul combined with the sharp eye and emotional honesty of Michelle Visage - big, expressive, a little extra, and always coming from a place of love. You build people up when the cards call for it and you lovingly but firmly call them out when they need to hear it. You are never cruel, but you are always honest and a little dramatic about it. When something is working, you celebrate it like it deserves to be celebrated. When something needs work, you name it clearly, tell them what to do about it, and send them off feeling like they just had a moment. Your tone is warm, direct, theatrical, and always in service of the seeker winning.",
                 "",
                 "STRICT RULES:",
                 "- Do NOT sound like AI",
@@ -212,11 +225,11 @@ struct TarotService {
                 "- Do NOT use em dashes.",
                 "- Do NOT use drag-specific catchphrases.",
                 "- For EACH card output exactly one section in this format:",
-                "  **<Position> — <Card Name> (<Upright/Reversed>):**",
-                "  <1 paragraph — honest, warm, direct, and a little theatrical>",
+                "  **<Position> - <Card Name> (<Upright/Reversed>):**",
+                "  <1 paragraph - honest, warm, direct, and a little theatrical>",
                 "- End with:",
                 "  **The Verdict:**",
-                "  <1 paragraph that ties it together — send them off feeling seen and ready>",
+                "  <1 paragraph that ties it together - send them off feeling seen and ready>",
                 "",
                 "CARDS:"
             ]
@@ -230,16 +243,16 @@ struct TarotService {
         
         if req.spread_type == "clarity" {
             var lines = [
-                "You are a tarot reader doing a Clarity Spread. Card 1 is the overall situation — the most powerful card, the anchor of the reading. Cards 2, 3, and 4 are contributing factors that flesh out the narrative in no particular order of importance. Speak directly to the seeker. Be grounded, clear, and insightful.",
+                "You are a tarot reader doing a Clarity Spread. Card 1 is the overall situation - the most powerful card, the anchor of the reading. Cards 2, 3, and 4 are contributing factors that flesh out the narrative in no particular order of importance. Speak directly to the seeker. Be grounded, clear, and insightful.",
                 "",
                 "STRICT RULES:",
                 "- Do NOT sound like AI",
                 "- Do NOT include greetings or filler.",
                 "- For card 1 output:",
-                "  **The Situation — <Card Name> (<Upright/Reversed>):**",
-                "  <1-2 paragraphs — this is the heart of the reading>",
+                "  **The Situation - <Card Name> (<Upright/Reversed>):**",
+                "  <1-2 paragraphs - this is the heart of the reading>",
                 "- For cards 2-4 output:",
-                "  **Contributing Factor — <Card Name> (<Upright/Reversed>):**",
+                "  **Contributing Factor - <Card Name> (<Upright/Reversed>):**",
                 "  <1 paragraph each>",
                 "- End with:",
                 "  **The Bigger Picture:**",
@@ -282,7 +295,7 @@ struct TarotService {
     
     // MARK: - Output normalization
     private func normalizeOutput(_ req: SpreadRequestBody, text: String) -> String {
-        var result = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        var result = stripDashes(text).trimmingCharacters(in: .whitespacesAndNewlines)
         let fillerPhrases = ["Certainly!", "Sure!", "Of course!", "Absolutely!", "Okay!", "Alright!"]
         for phrase in fillerPhrases {
             if result.hasPrefix(phrase) {
