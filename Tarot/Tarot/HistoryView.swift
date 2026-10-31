@@ -184,6 +184,15 @@ struct ReadingHistoryRow: View {
         return formatter.string(from: reading.date)
     }
 
+    var previewText: String {
+        let lines = reading.interpretation
+            .replacingOccurrences(of: "**", with: "")
+            .components(separatedBy: "\n")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        return lines.drop(while: { $0.hasSuffix(":") }).joined(separator: " ")
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -222,7 +231,7 @@ struct ReadingHistoryRow: View {
             }
 
             // Interpretation preview
-            Text(reading.interpretation.replacingOccurrences(of: "**", with: ""))
+            Text(previewText)
                 .font(.system(size: 12, weight: .light))
                 .foregroundStyle(.white.opacity(0.35))
                 .lineLimit(2)

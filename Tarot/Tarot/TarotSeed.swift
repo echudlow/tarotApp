@@ -10,7 +10,14 @@ import SwiftData
 
 extension ContentView {
     func seedTarotDeckIfNeeded() {
-        guard cards.isEmpty else { return }
+        
+        let seedVersion = 2
+        if UserDefaults.standard.integer(forKey: "tarotSeedVersion") < seedVersion {
+            for card in cards { modelContext.delete(card) }
+            try? modelContext.save()
+        } else {
+            guard cards.isEmpty else { return }
+        }
         
         let fool = TarotCard(
             name: "The Fool",
@@ -27,8 +34,8 @@ extension ContentView {
             name: "The Magician",
             suit: nil,
             number: 1,
-            uprightMeaning: "Opportunities to use talents. Skill, self reliance, orginality, creativity, imagination, diplomacy. The merging of the four elements.",
-            reversedMeaning: "Unskilled, clumsy, insecure, disgrace, bad judgemnet causes loss.",
+            uprightMeaning: "Opportunities to use talents. Skill, self reliance, originality, creativity, imagination, diplomacy. The merging of the four elements.",
+            reversedMeaning: "Unskilled, clumsy, insecure, disgrace, bad judgement causes loss.",
             keywords: ["Skill", "Manifestation", "Action"],
             imageName: "01_the_magician",
             arcana: "Major"
@@ -50,7 +57,7 @@ extension ContentView {
             suit: nil,
             number: 3,
             uprightMeaning: "Pregnancy, fertility, good advice, safety, security, hidden actions. A competent woman, safe and secure, who is building a future for herself and her family.",
-            reversedMeaning: "Lack of satisfaction. The unraveling of involved matters. Uncertainty, infedelity, infertility.",
+            reversedMeaning: "Lack of satisfaction. The unraveling of involved matters. Uncertainty, infidelity, infertility.",
             keywords: ["Fertility", "Nurturing", "Abundance"],
             imageName: "03_the_empress",
             arcana: "Major"
@@ -60,7 +67,7 @@ extension ContentView {
             name: "The Emperor",
             suit: nil,
             number: 4,
-            uprightMeaning: "A father figure, secure and successful. A stable, authoratative, powerful leader. A person with the qualities of reason and conviction.",
+            uprightMeaning: "A father figure, secure and successful. A stable, authoritative, powerful leader. A person with the qualities of reason and conviction.",
             reversedMeaning: "Confusion, obstruction, immaturity, ineffectiveness, weakness of character, megalomania.",
             keywords: ["Authority", "Structure", "Leadership"],
             imageName: "04_the_emperor",
@@ -116,7 +123,7 @@ extension ContentView {
             suit: nil,
             number: 9,
             uprightMeaning: "Meditation, the search for the truth, good counsel, wisdom, prudence. A withdrawal from life is needed to find one's center.",
-            reversedMeaning: "Hastiness, imprudence, unreasoning caution or fear, emotional immaturity. Withdrawal from one's problems with no contructive plans.",
+            reversedMeaning: "Hastiness, imprudence, unreasoning caution or fear, emotional immaturity. Withdrawal from one's problems with no constructive plans.",
             keywords: ["Solitude", "Reflection", "Wisdom"],
             imageName: "09_the_hermit",
             arcana: "Major"
@@ -148,7 +155,7 @@ extension ContentView {
             name: "The Hanged Man",
             suit: nil,
             number: 12,
-            uprightMeaning: "Suspense, life interrupted, chagne. Wisdom in occult matters. Sacrifice for wisdom. Inner serach for turth. Change in your point of view.",
+            uprightMeaning: "Suspense, life interrupted, change. Wisdom in occult matters. Sacrifice for wisdom. Inner search for truth. Change in your point of view.",
             reversedMeaning: "A wasteful search, selfishness. Lack of effort needed to achieve a goal. A useless gesture.",
             keywords: ["Surrender", "Perspective", "Pause"],
             imageName: "12_the_hanged_man",
@@ -159,8 +166,8 @@ extension ContentView {
             name: "Death",
             suit: nil,
             number: 13,
-            uprightMeaning: "The end of an era(and a beginning). A reminder of mortality. A grea change. A discovery that changes the seeker's life direction.",
-            reversedMeaning: "Lethargy, great inertia, depression, slow or ponderous change. Resisting the innevitable.",
+            uprightMeaning: "The end of an era(and a beginning). A reminder of mortality. A great change. A discovery that changes the seeker's life direction.",
+            reversedMeaning: "Lethargy, great inertia, depression, slow or ponderous change. Resisting the inevitable.",
             keywords: ["Transformation", "Endings", "Release"],
             imageName: "13_death",
             arcana: "Major"
@@ -170,8 +177,8 @@ extension ContentView {
             name: "Temperance",
             suit: nil,
             number: 14,
-            uprightMeaning: "Economy, patience, a moderate lifestyle. Obtaining security through frugal managemnt of means. Meditation. All things in moderation---including moderation.",
-            reversedMeaning: "Competitive interests. Hostility. Too much caution. A person with whom it is impossbile to work. Misunderstanding others.",
+            uprightMeaning: "Economy, patience, a moderate lifestyle. Obtaining security through frugal management of means. Meditation. All things in moderation---including moderation.",
+            reversedMeaning: "Competitive interests. Hostility. Too much caution. A person with whom it is impossible to work. Misunderstanding others.",
             keywords: ["Balance", "Moderation", "Harmony"],
             imageName: "14_temperance",
             arcana: "Major"
@@ -192,7 +199,7 @@ extension ContentView {
             name: "The Tower",
             suit: nil,
             number: 16,
-            uprightMeaning: "Sudden chagne, broken friendships, destruction, security lost, a disgrace. Catastrophic transformation.",
+            uprightMeaning: "Sudden change, broken friendships, destruction, security lost, a disgrace. Catastrophic transformation.",
             reversedMeaning: "Tyranny, continued oppression. Lack of change, monetary losses.",
             keywords: ["Upheaval", "Shock", "Revelation"],
             imageName: "16_the_tower",
@@ -236,7 +243,7 @@ extension ContentView {
             name: "Judgement",
             suit: nil,
             number: 20,
-            uprightMeaning: "A change of position, rejuvenation, rebirth. Reward, acquiring a purpose. Atonement, paying the piper, accoutning for one's actions.",
+            uprightMeaning: "A change of position, rejuvenation, rebirth. Reward, acquiring a purpose. Atonement, paying the piper, accounting for one's actions.",
             reversedMeaning: "Weakness. Lost affections, separation, divorce. Confrontation, indecision. Avoidance of obligations.",
             keywords: ["Rebirth", "Awakening", "Accountability"],
             imageName: "20_judgement",
@@ -247,7 +254,7 @@ extension ContentView {
             name: "The World",
             suit: nil,
             number: 21,
-            uprightMeaning: "Completion, the end of a way of life, success. A new beginning, a change of location, hope for the future. Triumph in the end. The admiration of friends. The breadth of possibilties.",
+            uprightMeaning: "Completion, the end of a way of life, success. A new beginning, a change of location, hope for the future. Triumph in the end. The admiration of friends. The breadth of possibilities.",
             reversedMeaning: "Disappointment. Discouragingly tiny advance. Failure, inability to finish what you have started. Permanence, stagnation.",
             keywords: ["Completion", "Integration", "Fulfillment"],
             imageName: "21_the_world",
@@ -270,7 +277,7 @@ extension ContentView {
                 suit: "Pentacles",
                 number: nil,
                 uprightMeaning: "A warm, generous woman who has the seeker's best interest at heart. No fear of hard work. Monetary gifts, intelligence, thoughtfulness.",
-                reversedMeaning: "Too dependent, duties negelected. Unetrusting, false prosperity. Changeable nature due to fear of failure.",
+                reversedMeaning: "Too dependent, duties neglected. Untrusting, false prosperity. Changeable nature due to fear of failure.",
                 keywords: [],
                 imageName: "queen_of_pentacles",
                 arcana: "Minor"
@@ -280,7 +287,7 @@ extension ContentView {
                 suit: "Pentacles",
                 number: nil,
                 uprightMeaning: "A mature man, responsible, reliable, utilitarian. A person who will help the seeker. Honorable. Solid. Travel is possible.",
-                reversedMeaning: "Problems at work. A warning against travel. The seeker should guard against deceity, carelessness, intertia, laziness.",
+                reversedMeaning: "Problems at work. A warning against travel. The seeker should guard against deceit, carelessness, inertia, laziness.",
                 keywords: [],
                 imageName: "knight_of_pentacles",
                 arcana: "Minor"
@@ -299,7 +306,7 @@ extension ContentView {
                 name: "Ten of Pentacles",
                 suit: "Pentacles",
                 number: 10,
-                uprightMeaning: "Prospertity - Riches. Home adn family matters. Positive domestic changes.",
+                uprightMeaning: "Prosperity - Riches. Home and family matters. Positive domestic changes.",
                 reversedMeaning: "Loss of belongings. An emotional loss or a death. Gambling, a bad risk.",
                 keywords: [],
                 imageName: "ten_of_pentacles",
@@ -319,7 +326,7 @@ extension ContentView {
                 name: "Eight of Pentacles",
                 suit: "Pentacles",
                 number: 8,
-                uprightMeaning: "Learning - Learning, apprenticeship, gaining new knowledge or skills, workign very hard at low-paying levels, nose to the grindstone. Creation.",
+                uprightMeaning: "Learning - Learning, apprenticeship, gaining new knowledge or skills, working very hard at low-paying levels, nose to the grindstone. Creation.",
                 reversedMeaning: "A lack of emotion, vanity. Caution against borrowing money.",
                 keywords: [],
                 imageName: "eight_of_pentacles",
@@ -349,7 +356,7 @@ extension ContentView {
                 name: "Five of Pentacles",
                 suit: "Pentacles",
                 number: 5,
-                uprightMeaning: "Misery - Destution, loss, loneliness, being out in the cold. Lovers who cannot find a meeting place. Poor health, spiritual impoverishment.",
+                uprightMeaning: "Misery - Destitution, loss, loneliness, being out in the cold. Lovers who cannot find a meeting place. Poor health, spiritual impoverishment.",
                 reversedMeaning: "Lessons in charity to be learned. New employment(possibly temporary). New courage. New interest in spiritual matters.",
                 keywords: [],
                 imageName: "five_of_pentacles",
@@ -359,7 +366,7 @@ extension ContentView {
                 name: "Four of Pentacles",
                 suit: "Pentacles",
                 number: 4,
-                uprightMeaning: "Miser - Miserliness, greed, selfishness. Avarice, suspicision, mistrust. Inability to let go of anything. An emotional black hole; shortsightedness, imbalance, desperation.",
+                uprightMeaning: "Miser - Miserliness, greed, selfishness. Avarice, suspicion, mistrust. Inability to let go of anything. An emotional black hole; shortsightedness, imbalance, desperation.",
                 reversedMeaning: "Suspense of gain, opposition, reversal of fortunes.",
                 keywords: [],
                 imageName: "four_of_pentacles",
@@ -379,7 +386,7 @@ extension ContentView {
                 name: "Two of Pentacles",
                 suit: "Pentacles",
                 number: 2,
-                uprightMeaning: "The Juggler, Balance - Ability to handle several things at once. Harmony in the midst of conflict and change. Fun and games. Knowing the re=opes. Balacne in self and in life, control.",
+                uprightMeaning: "The Juggler, Balance - Ability to handle several things at once. Harmony in the midst of conflict and change. Fun and games. Knowing the ropes. Balance in self and in life, control.",
                 reversedMeaning: "Too much to handle. Instability. Lack of control. Forced gaiety.",
                 keywords: [],
                 imageName: "two_of_pentacles",
@@ -403,7 +410,7 @@ extension ContentView {
                 suit: "Swords",
                 number: nil,
                 uprightMeaning: "A perceptive, intelligent, and strong willed man is indicated.",
-                reversedMeaning: "Crueld and hardhearted. Pig-headed, untrustworthy, crafty.",
+                reversedMeaning: "Cruel and hardhearted. Pig-headed, untrustworthy, crafty.",
                 keywords: [],
                 imageName: "king_of_swords",
                 arcana: "Minor"
@@ -413,7 +420,7 @@ extension ContentView {
                 suit: "Swords",
                 number: nil,
                 uprightMeaning: "A strong woman, confident, quickwitted, and intensely perceptive.",
-                reversedMeaning: "Keeness sharpened to cruelty. Sly, deceitful, narrow-minded. A gossip. Quarrelsome.",
+                reversedMeaning: "Keenness sharpened to cruelty. Sly, deceitful, narrow-minded. A gossip. Quarrelsome.",
                 keywords: [],
                 imageName: "queen_of_swords",
                 arcana: "Minor"
@@ -422,7 +429,7 @@ extension ContentView {
                 name: "Knight of Swords",
                 suit: "Swords",
                 number: nil,
-                uprightMeaning: "A soldier; heroic, brave. Righteous anger. Triumph over an opposition. A pracitcal solution to a problem.",
+                uprightMeaning: "A soldier; heroic, brave. Righteous anger. Triumph over an opposition. A practical solution to a problem.",
                 reversedMeaning: "Unsuccessful or erratic behavior. Bad judgement, extravagance. The seeker makes an impulsive mistake.",
                 keywords: [],
                 imageName: "knight_of_swords",
@@ -462,7 +469,7 @@ extension ContentView {
                 name: "Eight of Swords",
                 suit: "Swords",
                 number: 8,
-                uprightMeaning: "I just cant't! - Fear, bondage, paralysis due to censure, indecision, illness, difficulties. A nearly impossbile task. Can symbolize prison.",
+                uprightMeaning: "I just can't! - Fear, bondage, paralysis due to censure, indecision, illness, difficulties. A nearly impossible task. Can symbolize prison.",
                 reversedMeaning: "Respite from fear, new beginnings, freedom, release.",
                 keywords: [],
                 imageName: "eight_of_swords",
@@ -492,8 +499,8 @@ extension ContentView {
                 name: "Five of Swords",
                 suit: "Swords",
                 number: 5,
-                uprightMeaning: "Nyaa-nya-nya-nyaa-nya - Failure, defeat, degradation, winnign by unfair means, trickery, cowardice, manipulation. A loss decreed by the gods.",
-                reversedMeaning: "Same as upright meaning, but lessened. An empty vitory. Unfairness and slyuness in dealing with others.",
+                uprightMeaning: "Nyaa-nya-nya-nyaa-nya - Failure, defeat, degradation, winning by unfair means, trickery, cowardice, manipulation. A loss decreed by the gods.",
+                reversedMeaning: "Same as upright meaning, but lessened. An empty victory. Unfairness and slyness in dealing with others.",
                 keywords: [],
                 imageName: "five_of_swords",
                 arcana: "Minor"
@@ -522,7 +529,7 @@ extension ContentView {
                 name: "Two of Swords",
                 suit: "Swords",
                 number: 2,
-                uprightMeaning: "Balance - Dangerous spot, precarious balance. Possible problems ahead. A chocie of lesser of two evils. The seeker has the knowledge and ability to balance the situation and make the best of it.",
+                uprightMeaning: "Balance - Dangerous spot, precarious balance. Possible problems ahead. A choice of lesser of two evils. The seeker has the knowledge and ability to balance the situation and make the best of it.",
                 reversedMeaning: "The waiting is over. Stalemate ended. Beware of a new situation. The seeker, or someone known to the seeker may travel soon.",
                 keywords: [],
                 imageName: "two_of_swords",
@@ -565,7 +572,7 @@ extension ContentView {
                 name: "Knight of Wands",
                 suit: "Wands",
                 number: nil,
-                uprightMeaning: "A journey. Practical action taken in spite of distractions.A change of residence.",
+                uprightMeaning: "A journey. Practical action taken in spite of distractions. A change of residence.",
                 reversedMeaning: "Separation, discord, misunderstanding, progress interrupted. A quarrel.",
                 keywords: [],
                 imageName: "knight_of_wands",
@@ -575,7 +582,7 @@ extension ContentView {
                 name: "Page of Wands",
                 suit: "Wands",
                 number: nil,
-                uprightMeaning: "A child with too much energy. A faithful or loyal person. A stranger explodes into the seekers life with good intentions. A great idea leading to success. A good employee.",
+                uprightMeaning: "A child with too much energy. A faithful or loyal person. A stranger explodes into the seeker's life with good intentions. A great idea leading to success. A good employee.",
                 reversedMeaning: "Childish pranks, indecision, bad news. The behavior of an acquaintance leads the seeker to doubt his or her sincerity. A gossip.",
                 keywords: [],
                 imageName: "page_of_wands",
@@ -596,7 +603,7 @@ extension ContentView {
                 suit: "Wands",
                 number: 9,
                 uprightMeaning: "Wait for it - Waiting for difficulties, changes, new challenges. Hidden foes, deception, temporary ceasefire in struggle.",
-                reversedMeaning: "Obstacles, problems, calamity, illness, disabiltiy.",
+                reversedMeaning: "Obstacles, problems, calamity, illness, disability.",
                 keywords: [],
                 imageName: "nine_of_wands",
                 arcana: "Minor"
@@ -605,7 +612,7 @@ extension ContentView {
                 name: "Eight of Wands",
                 suit: "Wands",
                 number: 8,
-                uprightMeaning: "Sudden advancement - Swift activiy, the path of activity, hope. Freedom of action after a period of inaction. Too swift a pace, decisions made too hastily. Travel.",
+                uprightMeaning: "Sudden advancement - Swift activity, the path of activity, hope. Freedom of action after a period of inaction. Too swift a pace, decisions made too hastily. Travel.",
                 reversedMeaning: "Jealousy, dispute, a bad conscience. Oppressive conditions (at home or at work).",
                 keywords: [],
                 imageName: "eight_of_wands",
@@ -635,7 +642,7 @@ extension ContentView {
                 name: "Five of Wands",
                 suit: "Wands",
                 number: 5,
-                uprightMeaning: "Unfilfilled struggle - Conflict, obstacles, unsatisfied desires, internal strige, indecision.",
+                uprightMeaning: "Unfulfilled struggle - Conflict, obstacles, unsatisfied desires, internal strife, indecision.",
                 reversedMeaning: "Trickery, complexity, involvement.",
                 keywords: [],
                 imageName: "five_of_wands",
@@ -645,7 +652,7 @@ extension ContentView {
                 name: "Four of Wands",
                 suit: "Wands",
                 number: 4,
-                uprightMeaning: "Romance and tranquility - Harmony, romance, a wedding. New prosperity, fruits of labor, rest, home, harverst, society.",
+                uprightMeaning: "Romance and tranquility - Harmony, romance, a wedding. New prosperity, fruits of labor, rest, home, harvest, society.",
                 reversedMeaning: "Loss of tranquillity, ingratitude. A dissatisfaction with present situation.",
                 keywords: [],
                 imageName: "four_of_wands",
@@ -656,7 +663,7 @@ extension ContentView {
                 suit: "Wands",
                 number: 3,
                 uprightMeaning: "Ships come in - Good business, strength, grasp of future and of things needed for growth, successful business ventures.",
-                reversedMeaning: "Bad business, failed business ventrues, poor grasp of the future.",
+                reversedMeaning: "Bad business, failed business ventures, poor grasp of the future.",
                 keywords: [],
                 imageName: "three_of_wands",
                 arcana: "Minor"
@@ -665,7 +672,7 @@ extension ContentView {
                 name: "Two of Wands",
                 suit: "Wands",
                 number: 2,
-                uprightMeaning: "Watch and wait - Wait to see if any plans bear fruit. Kindness, genorosity, intellect, well balanced individual, creative. Good thigns coming, fulfillment.",
+                uprightMeaning: "Watch and wait - Wait to see if any plans bear fruit. Kindness, generosity, intellect, well balanced individual, creative. Good things coming, fulfillment.",
                 reversedMeaning: "Seeker must avoid impatience. Empty success. Good beginnings go sour. Domination by others.",
                 keywords: [],
                 imageName: "two_of_wands",
@@ -709,7 +716,7 @@ extension ContentView {
                 suit: "Cups",
                 number: nil,
                 uprightMeaning: "An opportunity may be presented to the seeker. Arrival of a lover. Appeal, approach, creativity, inspiration.",
-                reversedMeaning: "A person capable or trickery. Warning against fraud. Competition for a love.",
+                reversedMeaning: "A person capable of trickery. Warning against fraud. Competition for a love.",
                 keywords: [],
                 imageName: "knight_of_cups",
                 arcana: "Minor"
@@ -718,7 +725,7 @@ extension ContentView {
                 name: "Page of Cups",
                 suit: "Cups",
                 number: nil,
-                uprightMeaning: "A helpful youth of artistic temperment, studious and intense. A trustworthy and trustying employee. The seeker finds that a child brings joy. A birth.",
+                uprightMeaning: "A helpful youth of artistic temperament, studious and intense. A trustworthy and trusting employee. The seeker finds that a child brings joy. A birth.",
                 reversedMeaning: "Deception, poor taste, seduction, inclination. A lack of discretion. An unpleasant surprise.",
                 keywords: [],
                 imageName: "page_of_cups",
@@ -748,7 +755,7 @@ extension ContentView {
                 name: "Eight of Cups",
                 suit: "Cups",
                 number: 8,
-                uprightMeaning: "Enough of this! - Abandonment of this phase of life, rejection of material things and a turning toward spiritual things. Disappointment in love. A searhc for new paths.",
+                uprightMeaning: "Enough of this! - Abandonment of this phase of life, rejection of material things and a turning toward spiritual things. Disappointment in love. A search for new paths.",
                 reversedMeaning: "A search for pleasure, hedonism, joy, new love, feasting. An abandonment of the responsibilities of life.",
                 keywords: [],
                 imageName: "eight_of_cups",
@@ -768,7 +775,7 @@ extension ContentView {
                 name: "Six of Cups",
                 suit: "Cups",
                 number: 6,
-                uprightMeaning: "Home, Childhood - The past, memories, nostalgia, knight on a pillar. Time whcih ahve passed by and vanished. Innocence, youthful idealism.",
+                uprightMeaning: "Home, Childhood - The past, memories, nostalgia, knight on a pillar. Time which have passed by and vanished. Innocence, youthful idealism.",
                 reversedMeaning: "The future, a renewal. Plans which may soon come true (or fail).",
                 keywords: [],
                 imageName: "six_of_cups",
@@ -798,8 +805,8 @@ extension ContentView {
                 name: "Three of Cups",
                 suit: "Cups",
                 number: 3,
-                uprightMeaning: "Good luck - Good fortune, artistic ability, sensitivity. Perhaps a party is in store. Fulfillemnt, healing, harmony.",
-                reversedMeaning: "Gluttony, overindulgence, or delary. Talents are hidden or unappreciated. Abundance turns to lack, pleasure to pain.",
+                uprightMeaning: "Good luck - Good fortune, artistic ability, sensitivity. Perhaps a party is in store. Fulfillment, healing, harmony.",
+                reversedMeaning: "Gluttony, overindulgence, or delay. Talents are hidden or unappreciated. Abundance turns to lack, pleasure to pain.",
                 keywords: [],
                 imageName: "three_of_cups",
                 arcana: "Minor"
@@ -808,7 +815,7 @@ extension ContentView {
                 name: "Two of Cups",
                 suit: "Cups",
                 number: 2,
-                uprightMeaning: "Balance, Friendship - Satisfying love, friendship, platonic love, a godo partnership, harmony, cooperation. Opposing forces blend and yield a glorious whole.",
+                uprightMeaning: "Balance, Friendship - Satisfying love, friendship, platonic love, a good partnership, harmony, cooperation. Opposing forces blend and yield a glorious whole.",
                 reversedMeaning: "Loss of balance, violent passion, love, becoming hate, misunderstanding.",
                 keywords: [],
                 imageName: "two_of_cups",
@@ -818,8 +825,8 @@ extension ContentView {
                 name: "Ace of Cups",
                 suit: "Cups",
                 number: 1,
-                uprightMeaning: "Bounty - Joy, abundance, perfection, fertility, fulfillment. Good things overflowing, fullness. Favorable outlook, faitfulness. Love.",
-                reversedMeaning: "False hope, clouded joy, fulfillment delaryed, false heart, unfaithfulness, false love, change, alteration, sterility.",
+                uprightMeaning: "Bounty - Joy, abundance, perfection, fertility, fulfillment. Good things overflowing, fullness. Favorable outlook, faithfulness. Love.",
+                reversedMeaning: "False hope, clouded joy, fulfillment delayed, false heart, unfaithfulness, false love, change, alteration, sterility.",
                 keywords: [],
                 imageName: "ace_of_cups",
                 arcana: "Minor"
@@ -877,6 +884,8 @@ extension ContentView {
         } catch {
             print("Error saving tarot deck: \(error)")
         }
+        
+        UserDefaults.standard.set(seedVersion, forKey: "tarotSeedVersion")
     }
         
 }
