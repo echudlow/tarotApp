@@ -32,6 +32,7 @@ struct ContentView: View {
     @State private var currentSpreadType: String = ""
     @State private var revealTask: Task<Void, Never>? = nil
     @State private var shareItems: ShareItems? = nil
+    @State private var detailCard: TarotCard? = nil
     // TODO: set to the App Store link once the app is published
     private let shareLink: String? = nil
     
@@ -97,112 +98,126 @@ struct ContentView: View {
                                 .padding(.bottom, 24)
                         } else {
                             CardFanView(spread: spread, isHomePreview: false, spreadType: currentSpreadType,
-                                        isLoading: isLoadingInterpretation, revealedCards: revealedCards)
+                                        revealedCards: revealedCards, interactive: true,
+                                        onTap: handleCardTap)
                                 .id(spread.map(\.id))
                                 .fadeSlideIn()
-                            
-                            if !isLoadingInterpretation {
-                                VStack(spacing: 16) {
-                                    ForEach(Array(spread.enumerated()), id: \.element.id) { index, drawn in
-                                        CardRow(drawn: drawn, reading: section(for: drawn)?.body)
-                                            .fadeSlideIn(delay: Double(index) * 0.15)
+
+                            if !allRevealed {
+                                Text(revealedCards.isEmpty ? "TAP A CARD TO TURN IT" : "TURN THE REMAINING CARDS")
+                                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                                    .foregroundStyle(.white.opacity(0.35))
+                                    .kerning(3)
+                                    .frame(maxWidth: .infinity)
+                            }
+
+                            VStack(spacing: 16) {
+                                ForEach(Array(spread.enumerated()), id: \.element.id) { index, drawn in
+                                    if revealedCards.contains(index) {
+                                        CardRow(drawn: drawn,
+                                                reading: section(for: drawn)?.body,
+                                                isLoadingReading: isLoadingInterpretation)
+                                            .transition(.opacity.combined(with: .move(edge: .bottom)))
                                     }
                                 }
                             }
+                            .animation(.easeOut(duration: 0.4), value: revealedCards)
                             
-                            // MARK: - Interpretation
-                            VStack(alignment: .leading, spacing: 16) {
-                                Rectangle()
-                                    .fill(.white.opacity(0.1))
-                                    .frame(height: 1)
-                                
-                                if isLoadingInterpretation {
-                                    Text("Reading the cards…")
-                                        .font(.system(size: 11, weight: .light, design: .monospaced))
-                                        .foregroundStyle(.white.opacity(loadingPulse ? 0.5 : 0.2))
-                                        .kerning(3)
-                                        .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: loadingPulse)
-                                        .onAppear { loadingPulse = true }
-                                        .onDisappear { loadingPulse = false }
+                            if allRevealed || interpretationError != nil {
+                                // MARK: - Interpretation
+                                VStack(alignment: .leading, spacing: 16) {
+                                    Rectangle()
+                                        .fill(.white.opacity(0.1))
+                                        .frame(height: 1)
+                                    
+                                    if isLoadingInterpretation {
+                                        Text("Reading the cards…")
+                                            .font(.system(size: 11, weight: .light, design: .monospaced))
+                                            .foregroundStyle(.white.opacity(loadingPulse ? 0.5 : 0.2))
+                                            .kerning(3)
+                                            .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: loadingPulse)
+                                            .onAppear { loadingPulse = true }
+                                            .onDisappear { loadingPulse = false }
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 24)
+                                    } else if interpretationError != nil {
+                                        VStack(spacing: 14) {
+                                            Text("The cards went quiet.")
+                                                .font(.system(size: 17, weight: .light, design: .serif))
+                                                .foregroundStyle(.white)
+                                            Text("Check your connection and try again.")
+                                                .font(.system(size: 12, weight: .light))
+                                                .foregroundStyle(.white.opacity(0.4))
+                                            Button {
+                                                retryInterpretation()
+                                            } label: {
+                                                Text("Try again")
+                                                    .font(.system(size: 13, weight: .light, design: .serif))
+                                                    .foregroundStyle(.white)
+                                                    .padding(.horizontal, 24)
+                                                    .padding(.vertical, 10)
+                                                    .background(
+                                                        RoundedRectangle(cornerRadius: 6)
+                                                            .fill(.white.opacity(0.08))
+                                                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(.white.opacity(0.15), lineWidth: 0.5))
+                                                    )
+                                            }
+                                            .buttonStyle(.plain)
+                                        }
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 24)
-                                } else if interpretationError != nil {
-                                    VStack(spacing: 14) {
-                                        Text("The cards went quiet.")
-                                            .font(.system(size: 17, weight: .light, design: .serif))
-                                            .foregroundStyle(.white)
-                                        Text("Check your connection and try again.")
-                                            .font(.system(size: 12, weight: .light))
-                                            .foregroundStyle(.white.opacity(0.4))
-                                        Button {
-                                            retryInterpretation()
-                                        } label: {
-                                            Text("Try again")
-                                                .font(.system(size: 13, weight: .light, design: .serif))
-                                                .foregroundStyle(.white)
-                                                .padding(.horizontal, 24)
-                                                .padding(.vertical, 10)
-                                                .background(
-                                                    RoundedRectangle(cornerRadius: 6)
-                                                        .fill(.white.opacity(0.08))
-                                                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(.white.opacity(0.15), lineWidth: 0.5))
-                                                )
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 24)
-                                } else if let text = interpretation {
-                                    if parsedSections.count == closingSections.count {
-                                        Text("INTERPRETATION")
-                                            .font(.system(size: 10, weight: .medium, design: .monospaced))
-                                            .foregroundStyle(.white.opacity(0.35))
-                                            .kerning(3)
-                                        Text(parseMarkdown(text))
-                                            .font(.system(size: 15, weight: .light, design: .serif))
-                                            .foregroundStyle(.white.opacity(0.85))
-                                            .lineSpacing(6)
-                                    } else {
-                                        ForEach(closingSections) { s in
-                                            VStack(alignment: .leading, spacing: 10) {
-                                                Text(s.header.uppercased())
-                                                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                                                    .foregroundStyle(.white.opacity(0.35))
-                                                    .kerning(3)
-                                                Text(parseMarkdown(s.body))
-                                                    .font(.system(size: 15, weight: .light, design: .serif))
-                                                    .foregroundStyle(.white.opacity(0.85))
-                                                    .lineSpacing(6)
+                                    } else if let text = interpretation {
+                                        if parsedSections.count == closingSections.count {
+                                            Text("INTERPRETATION")
+                                                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                                                .foregroundStyle(.white.opacity(0.35))
+                                                .kerning(3)
+                                            Text(parseMarkdown(text))
+                                                .font(.system(size: 15, weight: .light, design: .serif))
+                                                .foregroundStyle(.white.opacity(0.85))
+                                                .lineSpacing(6)
+                                        } else {
+                                            ForEach(closingSections) { s in
+                                                VStack(alignment: .leading, spacing: 10) {
+                                                    Text(s.header.uppercased())
+                                                        .font(.system(size: 10, weight: .medium, design: .monospaced))
+                                                        .foregroundStyle(.white.opacity(0.35))
+                                                        .kerning(3)
+                                                    Text(parseMarkdown(s.body))
+                                                        .font(.system(size: 15, weight: .light, design: .serif))
+                                                        .foregroundStyle(.white.opacity(0.85))
+                                                        .lineSpacing(6)
+                                                }
                                             }
                                         }
                                     }
-                                }
-                                if !isLoadingInterpretation, interpretationError == nil, interpretation != nil {
-                                    Button {
-                                        prepareShare()
-                                    } label: {
-                                        HStack(spacing: 8) {
-                                            Image(systemName: "square.and.arrow.up")
-                                                .font(.system(size: 12, weight: .light))
-                                                .foregroundStyle(Color(red: 0.94, green: 0.90, blue: 0.78))
-                                            Text("SHARE")
-                                                .font(.system(size: 11, weight: .medium, design: .monospaced))
-                                                .foregroundStyle(.white.opacity(0.7))
-                                                .kerning(3)
+                                    if !isLoadingInterpretation, interpretationError == nil, interpretation != nil {
+                                        Button {
+                                            prepareShare()
+                                        } label: {
+                                            HStack(spacing: 8) {
+                                                Image(systemName: "square.and.arrow.up")
+                                                    .font(.system(size: 12, weight: .light))
+                                                    .foregroundStyle(Color(red: 0.94, green: 0.90, blue: 0.78))
+                                                Text("SHARE")
+                                                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                                    .foregroundStyle(.white.opacity(0.7))
+                                                    .kerning(3)
+                                            }
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 14)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 6)
+                                                    .fill(.white.opacity(0.06))
+                                                    .overlay(
+                                                        RoundedRectangle(cornerRadius: 6)
+                                                            .stroke(Color(red: 0.94, green: 0.90, blue: 0.78).opacity(0.25), lineWidth: 0.5)
+                                                    )
+                                            )
                                         }
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 14)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 6)
-                                                .fill(.white.opacity(0.06))
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 6)
-                                                        .stroke(Color(red: 0.94, green: 0.90, blue: 0.78).opacity(0.25), lineWidth: 0.5)
-                                                )
-                                        )
+                                        .buttonStyle(.plain)
+                                        .padding(.top, 8)
                                     }
-                                    .buttonStyle(.plain)
-                                    .padding(.top, 8)
                                 }
                             }
                         }
@@ -273,6 +288,9 @@ struct ContentView: View {
             ActivityView(items: share.items)
                 .presentationDetents([.medium, .large])
         }
+        .sheet(item: $detailCard) { card in
+            CardDetailSheet(card: card)
+        }
         .task {
             seedTarotDeckIfNeeded()
             try? await Task.sleep(nanoseconds: 500_000_000)
@@ -336,7 +354,7 @@ struct ContentView: View {
         interpretation = nil
         interpretationError = nil
         isLoadingInterpretation = true
-        startReveal()
+        resetReveal()
         interpretTask?.cancel()
         
         let requestID = UUID()
@@ -396,7 +414,6 @@ struct ContentView: View {
         guard !spread.isEmpty else { return }
         interpretationError = nil
         isLoadingInterpretation = true
-        startReveal()
         interpretTask?.cancel()
 
         let requestID = UUID()
@@ -486,7 +503,7 @@ struct ContentView: View {
         interpretation = nil
         interpretationError = nil
         isLoadingInterpretation = true
-        startReveal()
+        resetReveal()
         interpretTask?.cancel()
         
         let requestID = UUID()
@@ -502,17 +519,22 @@ struct ContentView: View {
         }
     }
     
-    private func startReveal() {
-        revealTask?.cancel()
+    private func resetReveal() {
         revealedCards.removeAll()
-        let count = spread.count
-        revealTask = Task { @MainActor in
-            for i in 0..<count {
-                try? await Task.sleep(nanoseconds: i == 0 ? 400_000_000 : 1_200_000_000)
-                if Task.isCancelled { return }
-                revealedCards.insert(i)
-                Haptics.soft()
-            }
+    }
+
+    private var allRevealed: Bool {
+        !spread.isEmpty && revealedCards.count >= spread.count
+    }
+
+    private func handleCardTap(_ index: Int) {
+        guard spread.indices.contains(index) else { return }
+        if revealedCards.contains(index) {
+            Haptics.tap()
+            detailCard = spread[index].card
+        } else {
+            Haptics.soft()
+            revealedCards.insert(index)
         }
     }
     
@@ -555,6 +577,7 @@ struct ContentView: View {
     struct CardRow: View {
         let drawn: DrawnCard
         var reading: String? = nil
+        var isLoadingReading: Bool = false
         
         var body: some View {
             VStack(alignment: .leading, spacing: 10) {
@@ -609,6 +632,12 @@ struct ContentView: View {
                         .font(.system(size: 15, weight: .light, design: .serif))
                         .foregroundStyle(.white.opacity(0.85))
                         .lineSpacing(6)
+                } else if isLoadingReading {
+                    Text("Reading the cards…")
+                        .font(.system(size: 11, weight: .light, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.3))
+                        .kerning(2)
+                        .padding(.top, 4)
                 }
             }
             .padding(16)
@@ -632,29 +661,34 @@ struct ContentView: View {
         let spread: [DrawnCard]
         let isHomePreview: Bool
         let spreadType: String
-        var isLoading: Bool = false
         var revealedCards: Set<Int> = []
+        var interactive: Bool = false
+        var onTap: (Int) -> Void = { _ in }
 
         private func revealed(_ index: Int) -> Bool {
-            !isLoading || revealedCards.contains(index)
+            !interactive || revealedCards.contains(index)
+        }
+
+        private func tile(_ i: Int, width: CGFloat, cornerRadius: CGFloat = 6) -> some View {
+            FlipCard(imageName: spread[i].card.imageName, isReversed: spread[i].isReversed,
+                     width: width, revealed: revealed(i), cornerRadius: cornerRadius)
+                .contentShape(Rectangle())
+                .onTapGesture { if interactive { onTap(i) } }
         }
 
         var body: some View {
             let count = spread.count
             if count == 1 {
-                FlipCard(imageName: spread[0].card.imageName, isReversed: spread[0].isReversed,
-                         width: 120, revealed: revealed(0))
+                tile(0, width: 120)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
             } else if count <= 4 {
                 if spreadType == "clarity" {
                     VStack(spacing: 12) {
-                        FlipCard(imageName: spread[0].card.imageName, isReversed: spread[0].isReversed,
-                                 width: 78, revealed: revealed(0))
+                        tile(0, width: 78)
                         HStack(spacing: 12) {
                             ForEach(1..<count, id: \.self) { i in
-                                FlipCard(imageName: spread[i].card.imageName, isReversed: spread[i].isReversed,
-                                         width: 78, revealed: revealed(i))
+                                tile(i, width: 78)
                             }
                         }
                     }
@@ -662,9 +696,8 @@ struct ContentView: View {
                     .padding(.vertical, 8)
                 } else {
                     HStack(spacing: 12) {
-                        ForEach(Array(spread.enumerated()), id: \.offset) { index, drawn in
-                            FlipCard(imageName: drawn.card.imageName, isReversed: drawn.isReversed,
-                                     width: count == 3 ? 90 : 78, revealed: revealed(index))
+                        ForEach(0..<count, id: \.self) { i in
+                            tile(i, width: count == 3 ? 90 : 78)
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -689,13 +722,11 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
                 } else {
-                    // V shape: outer cards high, center card lowest, with gaps between cards
                     let drops: [CGFloat] = [0, 19, 38, 19, 0]
 
                     HStack(alignment: .top, spacing: 8) {
                         ForEach(0..<5, id: \.self) { i in
-                            FlipCard(imageName: spread[i].card.imageName, isReversed: spread[i].isReversed,
-                                     width: 58, revealed: revealed(i), cornerRadius: 5)
+                            tile(i, width: 58, cornerRadius: 5)
                                 .padding(.top, drops[i])
                         }
                     }
