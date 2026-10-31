@@ -31,6 +31,9 @@ struct ContentView: View {
     @State private var loadingPulse: Bool = false
     @State private var currentSpreadType: String = ""
     @State private var revealTask: Task<Void, Never>? = nil
+    @State private var shareItems: ShareItems? = nil
+    // TODO: set to the App Store link once the app is published
+    private let shareLink: String? = nil
     
     private let tarotService = TarotService()
     
@@ -174,6 +177,33 @@ struct ContentView: View {
                                         }
                                     }
                                 }
+                                if !isLoadingInterpretation, interpretationError == nil, interpretation != nil {
+                                    Button {
+                                        prepareShare()
+                                    } label: {
+                                        HStack(spacing: 8) {
+                                            Image(systemName: "square.and.arrow.up")
+                                                .font(.system(size: 12, weight: .light))
+                                                .foregroundStyle(Color(red: 0.94, green: 0.90, blue: 0.78))
+                                            Text("SHARE")
+                                                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                                .foregroundStyle(.white.opacity(0.7))
+                                                .kerning(3)
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 14)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 6)
+                                                .fill(.white.opacity(0.06))
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 6)
+                                                        .stroke(Color(red: 0.94, green: 0.90, blue: 0.78).opacity(0.25), lineWidth: 0.5)
+                                                )
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                    .padding(.top, 8)
+                                }
                             }
                         }
                         
@@ -213,6 +243,23 @@ struct ContentView: View {
                     }
                     .padding(.horizontal, 24)
                 }
+                VStack {
+                    LinearGradient(
+                        stops: [
+                            .init(color: .black, location: 0.0),
+                            .init(color: .black.opacity(0.92), location: 0.35),
+                            .init(color: .black.opacity(0.6), location: 0.6),
+                            .init(color: .black.opacity(0.2), location: 0.85),
+                            .init(color: .clear, location: 1.0)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 100)
+                    .ignoresSafeArea(edges: .top)
+                    Spacer()
+                }
+                .allowsHitTesting(false)
             }
             .navigationBarHidden(true)
         }
@@ -221,6 +268,10 @@ struct ContentView: View {
             QuestionInputSheet(questionText: $questionText) { question in
                 drawQuestionSpread(question: question)
             }
+        }
+        .sheet(item: $shareItems) { share in
+            ActivityView(items: share.items)
+                .presentationDetents([.medium, .large])
         }
         .task {
             seedTarotDeckIfNeeded()
@@ -362,6 +413,55 @@ struct ContentView: View {
     private func drawDailyFromNotification() {
         UserDefaults.standard.set(false, forKey: "pendingDailyDraw")
         drawSpread(spreadType: "daily", positions: ["Daily Card"])
+    }
+    
+    private var spreadTitle: String {
+        switch currentSpreadType {
+        case "daily": return "Daily Card"
+        case "three_card": return "Three Card Spread"
+        case "four_card": return "Four Card Spread"
+        case "clarity": return "Clarity Spread"
+        case "question": return "Question Spread"
+        case "read_me": return "Read Me"
+        default: return "Reading"
+        }
+    }
+
+    @MainActor
+    private func prepareShare() {
+        guard let text = interpretation else { return }
+        Haptics.tap()
+
+        let hasClosing = parsedSections.count != closingSections.count
+        let closing = hasClosing ? closingSections.first : nil
+        let question: String? = currentSpreadType == "question" ? questionText : nil
+
+        let card = ShareCardView(
+            spreadName: spreadTitle,
+            spreadType: currentSpreadType,
+            cards: spread,
+            question: question,
+            closingHeader: closing?.header,
+            closingText: closing?.body ?? String(text.replacingOccurrences(of: "**", with: "").prefix(420))
+        )
+        let renderer = ImageRenderer(content: card)
+        renderer.scale = 3
+
+        var items: [Any] = []
+        if let image = renderer.uiImage, let data = image.pngData() {
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("The Read - \(spreadTitle).png")
+            if (try? data.write(to: url)) != nil {
+                items.append(url)
+            } else {
+                items.append(image)
+            }
+        } else {
+            print("Share image failed to render")
+        }
+        if let shareLink { items.append(shareLink) }
+        guard !items.isEmpty else { return }
+        shareItems = ShareItems(items: items)
     }
     
     private func drawQuestionSpread(question: String) {
@@ -589,18 +689,16 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
                 } else {
-                    let vOffsets: [CGFloat] = [-30, -15, 0, -15, -30]
-                    let spacing: CGFloat = 58
-                    let startX: CGFloat = -(spacing * 4 / 2)
+                    // V shape: outer cards high, center card lowest, with gaps between cards
+                    let drops: [CGFloat] = [0, 19, 38, 19, 0]
 
-                    ZStack {
-                        ForEach(Array(spread.enumerated()), id: \.offset) { index, drawn in
-                            FlipCard(imageName: drawn.card.imageName, isReversed: drawn.isReversed,
-                                     width: 58, revealed: revealed(index), cornerRadius: 5)
-                                .offset(x: startX + CGFloat(index) * spacing, y: vOffsets[index])
+                    HStack(alignment: .top, spacing: 8) {
+                        ForEach(0..<5, id: \.self) { i in
+                            FlipCard(imageName: spread[i].card.imageName, isReversed: spread[i].isReversed,
+                                     width: 58, revealed: revealed(i), cornerRadius: 5)
+                                .padding(.top, drops[i])
                         }
                     }
-                    .frame(height: 160)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
                 }
