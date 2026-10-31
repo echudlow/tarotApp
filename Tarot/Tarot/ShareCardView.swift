@@ -14,11 +14,20 @@ struct ShareCardView: View {
     let question: String?
     let closingHeader: String?
     let closingText: String
+    var date: Date = Date()
+    var sections: [InterpretationSection] = []   // when set, shown instead of just the closing text
+    var fillWidth: Bool = false                  // true in the app, false when rendering the share image
+    var showFooter: Bool = true
+    var onCardTap: ((DrawnCard) -> Void)? = nil
 
     private let contentWidth: CGFloat = 390 - 48
 
     private func meaning(for drawn: DrawnCard) -> String {
         drawn.isReversed ? drawn.card.reversedMeaning : drawn.card.uprightMeaning
+    }
+
+    private func markdown(_ text: String) -> AttributedString {
+        (try? AttributedString(markdown: text, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(text)
     }
 
     private func cardTile(_ drawn: DrawnCard, width: CGFloat, nameSize: CGFloat = 10) -> some View {
@@ -45,12 +54,15 @@ struct ShareCardView: View {
                     .foregroundStyle(.white.opacity(0.4))
             }
         }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onCardTap?(drawn)
+        }
     }
 
     @ViewBuilder
     private var spreadLayout: some View {
         if cards.count == 1, let drawn = cards.first {
-            // Single card: name plus its standard meaning
             VStack(spacing: 12) {
                 if let name = drawn.card.imageName {
                     Image(name)
@@ -78,8 +90,11 @@ struct ShareCardView: View {
                     .lineSpacing(3)
                     .padding(.horizontal, 8)
             }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                onCardTap?(drawn)
+            }
         } else if spreadType == "clarity", cards.count == 4 {
-            // One on top, three below
             VStack(spacing: 16) {
                 cardTile(cards[0], width: 92)
                 HStack(alignment: .top, spacing: 14) {
@@ -89,7 +104,6 @@ struct ShareCardView: View {
                 }
             }
         } else if cards.count == 5 {
-            // V shape: outer cards high, center card lowest
             let drops: [CGFloat] = [0, 20, 40, 20, 0]
             HStack(alignment: .top, spacing: 10) {
                 ForEach(0..<5, id: \.self) { i in
@@ -98,7 +112,6 @@ struct ShareCardView: View {
                 }
             }
         } else {
-            // Straight row
             let n = CGFloat(max(cards.count, 1))
             let w = min(96, (contentWidth - 10 * (n - 1)) / n)
             HStack(alignment: .top, spacing: 10) {
@@ -109,6 +122,24 @@ struct ShareCardView: View {
         }
     }
 
+    private var closingBlock: some View {
+        VStack(alignment: .center, spacing: 8) {
+            if let closingHeader {
+                Text(closingHeader.uppercased())
+                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.35))
+                    .kerning(3)
+            }
+            Text(markdown(closingText))
+                .font(.system(size: 14, weight: .light, design: .serif))
+                .foregroundStyle(.white.opacity(0.85))
+                .lineSpacing(5)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 8)
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
+    }
+
     var body: some View {
         VStack(spacing: 22) {
             VStack(spacing: 6) {
@@ -116,7 +147,7 @@ struct ShareCardView: View {
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
                     .foregroundStyle(.white.opacity(0.4))
                     .kerning(4)
-                Text(Date().formatted(.dateTime.month(.wide).day().year()))
+                Text(date.formatted(.dateTime.month(.wide).day().year()))
                     .font(.system(size: 22, weight: .light, design: .serif))
                     .foregroundStyle(.white)
                 if let question, !question.isEmpty {
@@ -133,29 +164,39 @@ struct ShareCardView: View {
 
             Rectangle().fill(.white.opacity(0.12)).frame(height: 1)
 
-            VStack(alignment: .center, spacing: 8) {
-                if let closingHeader {
-                    Text(closingHeader.uppercased())
-                        .font(.system(size: 9, weight: .medium, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.35))
-                        .kerning(3)
+            if sections.isEmpty {
+                closingBlock
+            } else {
+                VStack(spacing: 26) {
+                    ForEach(sections) { s in
+                        VStack(alignment: .center, spacing: 8) {
+                            Text(s.header.uppercased())
+                                .font(.system(size: 9, weight: .medium, design: .monospaced))
+                                .foregroundStyle(.white.opacity(0.35))
+                                .kerning(3)
+                                .multilineTextAlignment(.center)
+                            Text(markdown(s.body))
+                                .font(.system(size: 14, weight: .light, design: .serif))
+                                .foregroundStyle(.white.opacity(0.85))
+                                .lineSpacing(5)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 8)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
                 }
-                Text(closingText)
-                    .font(.system(size: 14, weight: .light, design: .serif))
-                    .foregroundStyle(.white.opacity(0.85))
-                    .lineSpacing(5)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 8)
             }
-            .frame(maxWidth: .infinity, alignment: .center)
 
-            Text("THE READ")
-                .font(.system(size: 8, weight: .medium, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.25))
-                .kerning(4)
+            if showFooter {
+                Text("THE READ")
+                    .font(.system(size: 8, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.25))
+                    .kerning(4)
+            }
         }
         .padding(24)
-        .frame(width: 390)
+        .frame(width: fillWidth ? nil : CGFloat(390))
+        .frame(maxWidth: fillWidth ? CGFloat.infinity : nil)
         .background(Color.black)
     }
 }
