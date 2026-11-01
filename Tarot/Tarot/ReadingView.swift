@@ -160,28 +160,31 @@ struct ReadingView: View {
     }
 
     private var errorView: some View {
-        VStack(spacing: 14) {
-            Text("The cards went quiet.")
+        let limited = interpretationError == TarotLimitError.reached.errorDescription
+        return VStack(spacing: 14) {
+            Text(limited ? "That's enough for now." : "The cards went quiet.")
                 .font(.system(size: 17, weight: .light, design: .serif))
                 .foregroundStyle(.white)
-            Text("Check your connection and try again.")
+            Text(limited ? "The cards need a rest. Come back a little later." : "Check your connection and try again.")
                 .font(.system(size: 12, weight: .light))
                 .foregroundStyle(.white.opacity(0.4))
-            Button {
-                retryInterpretation()
-            } label: {
-                Text("Try again")
-                    .font(.system(size: 13, weight: .light, design: .serif))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(.white.opacity(0.08))
-                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(.white.opacity(0.15), lineWidth: 0.5))
-                    )
+            if !limited {
+                Button {
+                    retryInterpretation()
+                } label: {
+                    Text("Try again")
+                        .font(.system(size: 13, weight: .light, design: .serif))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(.white.opacity(0.08))
+                                .overlay(RoundedRectangle(cornerRadius: 6).stroke(.white.opacity(0.15), lineWidth: 0.5))
+                        )
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 24)
@@ -466,6 +469,7 @@ struct ReadingView: View {
                 }
             } catch {
                 if Task.isCancelled { throw error }
+                if error is TarotLimitError { throw error }
                 // Stream failed, fall back to the normal call
                 interpretation = nil
                 response = try await tarotService.interpretSpread(body)
