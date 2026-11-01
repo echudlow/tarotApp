@@ -51,6 +51,7 @@ struct ContentView: View {
         }
         .preferredColorScheme(.dark)
         .task {
+            _ = PurchaseStore.shared
             seedTarotDeckIfNeeded()
             if UserDefaults.standard.bool(forKey: "pendingDailyDraw") {
                 openDailyFromNotification()
