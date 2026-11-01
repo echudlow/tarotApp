@@ -1,3 +1,5 @@
+import { PRIVACY_HTML } from "./privacy.js";
+
 // The Read proxy: holds the Anthropic key, limits usage per device, streams the reply back.
 
 const MODEL = "claude-haiku-4-5-20251001";
@@ -20,6 +22,10 @@ async function bump(kv, key) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    if (request.method === "GET" && url.pathname === "/privacy") {
+      return new Response(PRIVACY_HTML, { headers: { "content-type": "text/html; charset=utf-8" } });
+    }
 
     if (request.method !== "POST" || url.pathname !== "/v1/messages") {
       return json({ error: "not found" }, 404);
