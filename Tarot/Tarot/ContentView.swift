@@ -35,6 +35,10 @@ struct ContentView: View {
     @State private var detailCard: TarotCard? = nil
     @State private var focusedIndex: Int? = nil
     @State private var showFullReading = false
+    @State private var showingReminderSettings = false
+    @AppStorage("reminderEnabled") private var reminderEnabled = true
+    @AppStorage("reminderHour") private var reminderHour = 8
+    @AppStorage("reminderMinute") private var reminderMinute = 0
     // TODO: set to the App Store link once the app is published
     private let shareLink: String? = nil
     
@@ -299,6 +303,29 @@ struct ContentView: View {
                                         .foregroundStyle(.white.opacity(0.25))
                                 }
                             }
+                            Rectangle()
+                                .fill(.white.opacity(0.08))
+                                .frame(height: 1)
+                            Button {
+                                showingReminderSettings = true
+                            } label: {
+                                HStack {
+                                    Text("DAILY REMINDER")
+                                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                        .foregroundStyle(.white.opacity(0.4))
+                                        .kerning(3)
+                                    Spacer()
+                                    Text(reminderEnabled
+                                         ? NotificationScheduler.timeString(hour: reminderHour, minute: reminderMinute)
+                                         : "OFF")
+                                        .font(.system(size: 11, weight: .light, design: .monospaced))
+                                        .foregroundStyle(.white.opacity(0.3))
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(.white.opacity(0.25))
+                                }
+                            }
+                            .buttonStyle(.plain)
                             .padding(.bottom, 32)
                         }
                         .padding(.horizontal, 24)
@@ -337,6 +364,10 @@ struct ContentView: View {
         }
         .sheet(item: $detailCard) { card in
             CardDetailSheet(card: card)
+        }
+        .sheet(isPresented: $showingReminderSettings) {
+            ReminderSettingsSheet()
+                .presentationDetents([.height(480), .large])
         }
         .task {
             seedTarotDeckIfNeeded()
