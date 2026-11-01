@@ -13,6 +13,7 @@ struct ReadingView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TarotCard.name) private var cards: [TarotCard]
+    @Query(sort: \Reading.date, order: .reverse) private var readings: [Reading]
 
     @State private var spread: [DrawnCard] = []
     @State private var hasDrawn = false
@@ -30,7 +31,7 @@ struct ReadingView: View {
 
     // TODO: set to the App Store link once the app is published
     private let shareLink: String? = nil
-    private let gold = Color(red: 0.94, green: 0.90, blue: 0.78)
+    private let gold = Theme.gold
     private let tarotService = TarotService()
 
     private var definition: SpreadDefinition { SpreadDefinition.with(id: route.spreadID) }
@@ -62,6 +63,7 @@ struct ReadingView: View {
         .toolbarBackground(Color.black, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbar(.hidden, for: .tabBar)
         .sheet(item: $shareItems) { share in
             ActivityView(items: share.items)
                 .presentationDetents([.medium, .large])
@@ -74,7 +76,8 @@ struct ReadingView: View {
             hasDrawn = true
             draw()
         }
-        .onDisappear { interpretTask?.cancel() }
+        // No cancel on disappear: switching tabs also fires it, and a reading that is
+        // cancelled halfway is never saved. A reading you leave finishes and lands in the Journal.
     }
 
     // MARK: - Pieces
@@ -340,15 +343,71 @@ struct ReadingView: View {
         return lines.joined(separator: "\n")
     }
 
+    // MARK: - Daily card (once per day)
+
+    /// Today's saved daily reading, if there is one.
+    private var savedDailyToday: Reading? {
+        guard definition.id == "daily" else { return nil }
+        return readings.first {
+            $0.spreadType == "daily" && Calendar.current.isDateInToday($0.date)
+        }
+    }
+
+    /// Reopen the daily card that was already drawn today, with its saved reading.
+    private func restoreDaily(_ saved: Reading) -> Bool {
+        guard let name = saved.cardNames.first,
+              let card = cards.first(where: { $0.name == name }) else { return false }
+
+        let reversed = saved.cardReversals.first ?? false
+        let position = saved.cardPositions.first ?? definition.positions[0]
+
+        spread = [DrawnCard(card: card, isReversed: reversed, position: position)]
+        interpretation = saved.interpretation
+        interpretationError = nil
+        isLoadingInterpretation = false
+        resetReveal()
+        if DailyCardStore.turnedToday {
+            revealedCards = [0]
+            focusedIndex = 0
+        }
+        return true
+    }
+
+    private func dailyAlreadySaved() -> Bool {
+        let start = Calendar.current.startOfDay(for: Date())
+        let descriptor = FetchDescriptor<Reading>(
+            predicate: #Predicate { $0.spreadType == "daily" && $0.date >= start }
+        )
+        return ((try? modelContext.fetchCount(descriptor)) ?? 0) > 0
+    }
+
     // MARK: - Drawing and reading
 
     private func draw() {
         let positions = definition.positions
         guard cards.count >= positions.count else { return }
 
-        let selected = Array(cards.shuffled().prefix(positions.count))
+        // Today's daily card was already read: show it again instead of drawing
+        if let saved = savedDailyToday, restoreDaily(saved) { return }
+
+        let isDaily = definition.id == "daily"
+        let selected: [TarotCard]
+        let flags: [Bool]
+
+        if isDaily, let stored = DailyCardStore.today(from: cards) {
+            // Drawn earlier today but never finished: same card again
+            selected = [stored.card]
+            flags = [stored.reversed]
+        } else {
+            selected = Array(cards.shuffled().prefix(positions.count))
+            flags = selected.map { _ in Bool.random() }
+            if isDaily, let first = selected.first {
+                DailyCardStore.save(card: first, reversed: flags[0])
+            }
+        }
+
         let newSpread: [DrawnCard] = selected.enumerated().map { index, card in
-            DrawnCard(card: card, isReversed: Bool.random(), position: positions[index])
+            DrawnCard(card: card, isReversed: flags[index], position: positions[index])
         }
 
         spread = newSpread
@@ -356,6 +415,10 @@ struct ReadingView: View {
         interpretationError = nil
         isLoadingInterpretation = true
         resetReveal()
+        if isDaily && DailyCardStore.turnedToday {
+            revealedCards = [0]
+            focusedIndex = 0
+        }
         dealHaptics(newSpread.count)
         interpretTask?.cancel()
 
@@ -411,16 +474,20 @@ struct ReadingView: View {
             guard activeRequestID == requestID else { return }
             interpretation = response.interpretation
             Haptics.success()
-            let reading = Reading(
-                spreadType: spreadType,
-                cardNames: spreadSnapshot.map { $0.card.name },
-                cardPositions: spreadSnapshot.map { $0.position },
-                cardReversals: spreadSnapshot.map { $0.isReversed },
-                interpretation: response.interpretation,
-                question: question
-            )
-            modelContext.insert(reading)
-            try? modelContext.save()
+
+            // One saved daily reading per day, even if the screen was opened twice mid-load
+            if !(spreadType == "daily" && dailyAlreadySaved()) {
+                let reading = Reading(
+                    spreadType: spreadType,
+                    cardNames: spreadSnapshot.map { $0.card.name },
+                    cardPositions: spreadSnapshot.map { $0.position },
+                    cardReversals: spreadSnapshot.map { $0.isReversed },
+                    interpretation: response.interpretation,
+                    question: question
+                )
+                modelContext.insert(reading)
+                try? modelContext.save()
+            }
         } catch {
             guard !Task.isCancelled else { return }
             guard activeRequestID == requestID else { return }
@@ -472,6 +539,9 @@ struct ReadingView: View {
         } else if index == next {
             Haptics.soft()
             revealedCards.insert(index)
+            if definition.id == "daily" {
+                DailyCardStore.markTurned(card: spread[index].card, reversed: spread[index].isReversed)
+            }
         } else {
             return   // out of order, ignore
         }
