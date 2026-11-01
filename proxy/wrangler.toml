@@ -1,0 +1,7 @@
+name = "the-read-proxy"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+[[kv_namespaces]]
+binding = "LIMITS"
+id = "df36c7334279436394c494d767a85fcd"

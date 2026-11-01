@@ -72,7 +72,7 @@ struct TodayView: View {
                 .font(.system(size: 11, weight: .medium, design: .monospaced))
                 .foregroundStyle(.white.opacity(0.4))
                 .kerning(4)
-            Text("Today")
+            Text("The Read")
                 .font(.system(size: 34, weight: .light, design: .serif))
                 .foregroundStyle(.white)
         }

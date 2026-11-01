@@ -42,23 +42,30 @@ struct AnthropicContent: Codable {
     let text: String
 }
 
+// MARK: - Errors
+enum TarotLimitError: LocalizedError {
+    case reached
+    var errorDescription: String? { "The cards need a rest. Come back a little later." }
+}
+
 // MARK: - TarotService
 struct TarotService {
 
-    private let apiKey: String
-    private let apiURL = URL(string: "https://api.anthropic.com/v1/messages")!
+    // The proxy holds the Anthropic key. Nothing secret lives in the app.
+    private let apiURL = URL(string: "https://the-read-proxy.theread-app.workers.dev/v1/messages")!
+
+    /// Anonymous, per-install ID the proxy uses for daily limits.
+    private var deviceID: String {
+        let key = "deviceID"
+        if let existing = UserDefaults.standard.string(forKey: key) { return existing }
+        let new = UUID().uuidString
+        UserDefaults.standard.set(new, forKey: key)
+        return new
+    }
     private let systemPrompt = "You are an experienced tarot reader speaking directly to someone. Be warm, honest, and grounded. You can be poetic when it fits naturally, but avoid cliches, filler phrases, and anything that sounds like a chatbot. Speak like a real person who genuinely knows this card. Do not use em dashes in your writing. Use commas, periods, or just start a new sentence instead. Follow the formatting rules exactly. Try to sound as little like AI as possible."
 
-    init() {
-        if let path = Bundle.main.path(forResource: "Config", ofType: "plist"),
-           let dict = NSDictionary(contentsOfFile: path),
-           let key = dict["ANTHROPIC_API_KEY"] as? String {
-            self.apiKey = key
-        } else {
-            fatalError("Missing Config.plist or ANTHROPIC_API_KEY")
-        }
-    }
-    
+    init() {}
+
     private func stripDashes(_ text: String) -> String {
         text.components(separatedBy: "\n").map { line in
             if line.trimmingCharacters(in: .whitespaces).hasPrefix("**") {
@@ -83,8 +90,7 @@ struct TarotService {
         var request = URLRequest(url: apiURL)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
-        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        request.setValue(deviceID, forHTTPHeaderField: "x-device-id")
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
         return request
     }
@@ -94,6 +100,9 @@ struct TarotService {
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
+        if let http = response as? HTTPURLResponse, http.statusCode == 429 {
+            throw TarotLimitError.reached
+        }
         if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
             let body = String(data: data, encoding: .utf8) ?? "<no body>"
             throw NSError(domain: "TarotService", code: http.statusCode,
@@ -115,6 +124,9 @@ struct TarotService {
         let request = try makeRequest(body, stream: true)
         let (bytes, response) = try await URLSession.shared.bytes(for: request)
 
+        if let http = response as? HTTPURLResponse, http.statusCode == 429 {
+            throw TarotLimitError.reached
+        }
         if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
             var errorText = ""
             for try await line in bytes.lines { errorText += line }
