@@ -70,7 +70,7 @@ struct AllCardsView: View {
                             .font(.system(size: 11, weight: .medium, design: .monospaced))
                             .foregroundStyle(.white.opacity(0.4))
                             .kerning(4)
-                        Text("All 78 Cards")
+                        Text("The Rider-Waite-Smith Tarot")
                             .font(.system(size: 28, weight: .light, design: .serif))
                             .foregroundStyle(.white)
                     }
