@@ -28,6 +28,8 @@ struct ReadingView: View {
     @State private var detailCard: TarotCard? = nil
     @State private var focusedIndex: Int? = nil
     @State private var showFullReading = false
+    @AppStorage("hasConsented") private var hasConsented = false
+    @Environment(\.dismiss) private var dismiss
 
     // TODO: set to the App Store link once the app is published
     private let shareLink: String? = nil
@@ -71,7 +73,14 @@ struct ReadingView: View {
         .sheet(item: $detailCard) { card in
             CardDetailSheet(card: card)
         }
-        .task(id: cards.count) {
+        .overlay {
+            if !hasConsented {
+                ConsentView(onAgree: { withAnimation { hasConsented = true } },
+                            onDecline: { dismiss() })
+                    .transition(.opacity)
+            }
+        }
+        .task(id: "\(cards.count)-\(hasConsented)") {
             guard !hasDrawn, cards.count >= definition.positions.count else { return }
             hasDrawn = true
             draw()
