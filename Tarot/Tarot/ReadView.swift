@@ -15,6 +15,8 @@ struct ReadView: View {
     @Query(sort: \Reading.date, order: .reverse) private var readings: [Reading]
 
     @State private var showingQuestionInput = false
+    @State private var showingPaywall = false
+    private var store: PurchaseStore { PurchaseStore.shared }
     @State private var questionText = ""
     @State private var dayStamp = Date()
 
@@ -44,7 +46,7 @@ struct ReadView: View {
                         .padding(.bottom, 14)
 
                         ForEach(SpreadDefinition.all) { spread in
-                            SpreadRow(spread: spread, note: note(for: spread)) {
+                            SpreadRow(spread: spread, note: note(for: spread), locked: isLocked(spread)) {
                                 start(spread)
                             }
                         }
@@ -69,6 +71,9 @@ struct ReadView: View {
                 }
             }
         }
+        .sheet(isPresented: $showingPaywall) {
+            PaywallView()
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { dayStamp = Date() }
         }
@@ -78,11 +83,22 @@ struct ReadView: View {
         if spread.id == "daily" {
             return dailyDrawn ? "ONE CARD · DRAWN TODAY" : "ONE CARD · ONCE A DAY"
         }
-        return "\(spread.cardCount) CARDS"
+        if store.isUnlocked { return "\(spread.cardCount) CARDS" }
+        let left = FreeSampleStore.remaining
+        return left > 0 ? "FREE SAMPLE · \(left) LEFT" : "UNLOCK TO READ"
+    }
+
+    /// Everything except the daily card needs the unlock once the free samples are used.
+    private func isLocked(_ spread: SpreadDefinition) -> Bool {
+        spread.id != "daily" && !store.isUnlocked && FreeSampleStore.remaining == 0
     }
 
     private func start(_ spread: SpreadDefinition) {
         Haptics.tap()
+        if isLocked(spread) {
+            showingPaywall = true
+            return
+        }
         if spread.needsQuestion {
             questionText = ""
             showingQuestionInput = true
@@ -97,6 +113,7 @@ struct ReadView: View {
 struct SpreadRow: View {
     let spread: SpreadDefinition
     var note: String? = nil
+    var locked: Bool = false
     let action: () -> Void
 
     var body: some View {
@@ -124,10 +141,11 @@ struct SpreadRow: View {
 
                 Spacer(minLength: 0)
 
-                Image(systemName: "chevron.right")
+                Image(systemName: locked ? "lock" : "chevron.right")
                     .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.25))
+                    .foregroundStyle(locked ? Theme.gold.opacity(0.6) : .white.opacity(0.25))
             }
+            .opacity(locked ? 0.7 : 1)
             .padding(16)
             .frame(maxWidth: .infinity)
             .background(

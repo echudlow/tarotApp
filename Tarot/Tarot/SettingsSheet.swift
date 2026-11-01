@@ -74,6 +74,11 @@ struct SettingsSheet: View {
                         Link("Privacy Policy", destination: URL(string: "https://the-read-proxy.theread-app.workers.dev/privacy")!)
                             .font(.system(size: 12, weight: .light))
                             .foregroundStyle(Theme.gold.opacity(0.8))
+                        Button("Restore Purchase") {
+                            Task { await PurchaseStore.shared.restore() }
+                        }
+                        .font(.system(size: 12, weight: .light))
+                        .foregroundStyle(Theme.gold.opacity(0.8))
                         Text(versionString)
                             .font(.system(size: 10, weight: .light, design: .monospaced))
                             .foregroundStyle(.white.opacity(0.3))

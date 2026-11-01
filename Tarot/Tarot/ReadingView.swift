@@ -422,6 +422,10 @@ struct ReadingView: View {
             DrawnCard(card: card, isReversed: flags[index], position: positions[index])
         }
 
+        if definition.id != "daily" && !PurchaseStore.shared.isUnlocked {
+            FreeSampleStore.use()
+        }
+        
         spread = newSpread
         interpretation = nil
         interpretationError = nil
