@@ -18,6 +18,7 @@ struct ContentView: View {
     @State private var selection: AppTab = .today
     @State private var todayPath: [ReadingRoute] = []
     @State private var readPath: [ReadingRoute] = []
+    @AppStorage("hasOnboarded") private var hasOnboarded = false
 
     var body: some View {
         TabView(selection: $selection) {
@@ -30,7 +31,7 @@ struct ContentView: View {
                 .tag(AppTab.read)
 
             NavigationStack {
-                HistoryView()
+                JournalRoot(goToRead: { selection = .read })
             }
             .tabItem { Label("Journal", systemImage: "book.closed") }
             .tag(AppTab.journal)
@@ -42,6 +43,12 @@ struct ContentView: View {
             .tag(AppTab.deck)
         }
         .tint(Theme.gold)
+        .animation(.easeInOut(duration: 0.2), value: selection)
+        .fullScreenCover(isPresented: Binding(get: { !hasOnboarded }, set: { _ in })) {
+            OnboardingView {
+                hasOnboarded = true
+            }
+        }
         .preferredColorScheme(.dark)
         .task {
             seedTarotDeckIfNeeded()
