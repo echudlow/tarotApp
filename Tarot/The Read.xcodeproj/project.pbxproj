@@ -35,14 +35,14 @@
 			path = Tarot;
 			sourceTree = "<group>";
 		};
-		FF6F9D972EEA0511007F7CF8 /* TarotTests */ = {
+		FF6F9D972EEA0511007F7CF8 /* The ReadTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = TarotTests;
+			path = "The ReadTests";
 			sourceTree = "<group>";
 		};
-		FF6F9DA12EEA0511007F7CF8 /* TarotUITests */ = {
+		FF6F9DA12EEA0511007F7CF8 /* The ReadUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = TarotUITests;
+			path = "The ReadUITests";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -76,8 +76,8 @@
 			isa = PBXGroup;
 			children = (
 				FF6F9D872EEA050F007F7CF8 /* Tarot */,
-				FF6F9D972EEA0511007F7CF8 /* TarotTests */,
-				FF6F9DA12EEA0511007F7CF8 /* TarotUITests */,
+				FF6F9D972EEA0511007F7CF8 /* The ReadTests */,
+				FF6F9DA12EEA0511007F7CF8 /* The ReadUITests */,
 				FF6F9D862EEA050F007F7CF8 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -131,7 +131,7 @@
 				FF6F9D962EEA0511007F7CF8 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				FF6F9D972EEA0511007F7CF8 /* TarotTests */,
+				FF6F9D972EEA0511007F7CF8 /* The ReadTests */,
 			);
 			name = "The ReadTests";
 			packageProductDependencies = (
@@ -154,7 +154,7 @@
 				FF6F9DA02EEA0511007F7CF8 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				FF6F9DA12EEA0511007F7CF8 /* TarotUITests */,
+				FF6F9DA12EEA0511007F7CF8 /* The ReadUITests */,
 			);
 			name = "The ReadUITests";
 			packageProductDependencies = (
@@ -412,7 +412,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.demboys.Tarot;
+				PRODUCT_BUNDLE_IDENTIFIER = com.papermoonstudio.theread;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -444,7 +444,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.demboys.Tarot;
+				PRODUCT_BUNDLE_IDENTIFIER = com.papermoonstudio.theread;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -466,7 +466,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.demboys.TarotTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.papermoonstudio.theread.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -488,7 +488,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.demboys.TarotTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.papermoonstudio.theread.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -508,7 +508,7 @@
 				DEVELOPMENT_TEAM = P7LH9CAUL7;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.demboys.TarotUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.papermoonstudio.theread.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -528,7 +528,7 @@
 				DEVELOPMENT_TEAM = P7LH9CAUL7;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.demboys.TarotUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.papermoonstudio.theread.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;

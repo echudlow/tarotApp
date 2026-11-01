@@ -6,7 +6,7 @@
 //
 
 import Testing
-@testable import Tarot
+@testable import The_Read
 
 struct TarotTests {
 

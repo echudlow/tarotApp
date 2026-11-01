@@ -81,7 +81,10 @@ final class PurchaseStore {
             case .success(let verification):
                 if case .verified(let t) = verification {
                     await t.finish()
-                    await refresh()
+                    if t.productID == Self.productID && t.revocationDate == nil {
+                        isUnlocked = true
+                        UserDefaults.standard.set(true, forKey: "unlockedCache")
+                    }
                     return isUnlocked
                 }
                 errorMessage = "The purchase couldn't be verified."
