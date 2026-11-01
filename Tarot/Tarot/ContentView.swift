@@ -115,7 +115,7 @@ struct ContentView: View {
                             }
                             
                             // Only the card you're on
-                            if !showFullReading, let i = focusedIndex, spread.indices.contains(i) {
+                            if (!showFullReading || isSingleCard), let i = focusedIndex, spread.indices.contains(i) {
                                 CardRow(drawn: spread[i],
                                         reading: section(for: spread[i])?.body,
                                         isLoadingReading: isLoadingInterpretation,
@@ -162,7 +162,7 @@ struct ContentView: View {
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 24)
                                 } else if interpretation != nil {
-                                    if showFullReading {
+                                    if closingVisible {
                                         VStack(alignment: .leading, spacing: 28) {
                                             Rectangle().fill(.white.opacity(0.1)).frame(height: 1)
                                             
@@ -216,16 +216,17 @@ struct ContentView: View {
                                                 )
                                             }
                                             .buttonStyle(.plain)
-                                            
-                                            VStack(alignment: .leading, spacing: 16) {
-                                                Text("THE FULL READING")
-                                                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                                                    .foregroundStyle(.white.opacity(0.35))
-                                                    .kerning(3)
-                                                ForEach(spread) { drawn in
-                                                    CardRow(drawn: drawn,
-                                                            reading: section(for: drawn)?.body,
-                                                            onImageTap: { detailCard = drawn.card })
+                                            if !isSingleCard {
+                                                VStack(alignment: .leading, spacing: 16) {
+                                                    Text("THE FULL READING")
+                                                        .font(.system(size: 10, weight: .medium, design: .monospaced))
+                                                        .foregroundStyle(.white.opacity(0.35))
+                                                        .kerning(3)
+                                                    ForEach(spread) { drawn in
+                                                        CardRow(drawn: drawn,
+                                                                reading: section(for: drawn)?.body,
+                                                                onImageTap: { detailCard = drawn.card })
+                                                    }
                                                 }
                                             }
                                         }
@@ -526,8 +527,18 @@ struct ContentView: View {
 
         var items: [Any] = []
         if let image = renderer.uiImage, let data = image.pngData() {
-            let url = FileManager.default.temporaryDirectory
-                .appendingPathComponent("The Read - \(spreadTitle).png")
+            let tmp = FileManager.default.temporaryDirectory
+
+            // Clear out earlier share images
+            if let old = try? FileManager.default.contentsOfDirectory(at: tmp, includingPropertiesForKeys: nil) {
+                for f in old where f.lastPathComponent.hasPrefix("The Read - ") {
+                    try? FileManager.default.removeItem(at: f)
+                }
+            }
+
+            // Unique name every time, so nothing can reuse a stale copy
+            let name = "The Read - \(spreadTitle) \(UUID().uuidString.prefix(8)).png"
+            let url = tmp.appendingPathComponent(name)
             if (try? data.write(to: url)) != nil {
                 items.append(url)
             } else {
@@ -603,6 +614,12 @@ struct ContentView: View {
         revealedCards.removeAll()
         focusedIndex = nil
         showFullReading = false
+    }
+    
+    private var isSingleCard: Bool { spread.count == 1 }
+
+    private var closingVisible: Bool {
+        showFullReading || (isSingleCard && allRevealed)
     }
 
     private var allRevealed: Bool {
