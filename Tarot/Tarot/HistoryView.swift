@@ -133,7 +133,8 @@ struct HistoryView: View {
                 }
             }
         }
-        .sheet(item: $selectedReading) { reading in
+        // Pushed instead of a sheet: a back button always in view, and swipe from the left edge works
+        .navigationDestination(item: $selectedReading) { reading in
             ReadingDetailSheet(reading: reading, cards: cards)
         }
         .alert(isSelecting ? "Delete Selected Readings?" : "Clear All Readings?", isPresented: $showingDeleteAllAlert) {
@@ -301,12 +302,6 @@ struct ReadingDetailSheet: View {
 
             ScrollView {
                 VStack(spacing: 0) {
-                    // Handle
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(.white.opacity(0.2))
-                        .frame(width: 36, height: 4)
-                        .padding(.top, 12)
-
                     ShareCardView(
                         spreadName: reading.spreadDisplayName,
                         spreadType: reading.spreadType,
@@ -327,8 +322,15 @@ struct ReadingDetailSheet: View {
                     Spacer(minLength: 40)
                 }
             }
+
+            // Text melts into black under the back button instead of ending on a hard line
+            TopFade()
         }
         .preferredColorScheme(.dark)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)   // the fade below replaces the hard bar
+        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbar(.hidden, for: .tabBar)
         .sheet(item: $selectedCard) { card in
             CardDetailSheet(card: card)
         }
