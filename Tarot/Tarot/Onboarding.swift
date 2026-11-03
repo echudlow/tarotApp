@@ -4,6 +4,7 @@
 //
 //  Created by Elijah Hudlow on 11/1/26.
 //
+//  Shown once, on first launch.
 
 import SwiftUI
 
@@ -15,6 +16,8 @@ struct OnboardingView: View {
     private let pages: [(eyebrow: String, title: String, body: String)] = [
         ("WELCOME", "The Read",
          "Tarot for reflection. Draw cards, turn them one at a time, and get a reading written around what you drew."),
+        ("HOW IT SPEAKS", "A voice in strange places",
+         "The universe has always found a voice in strange places: smoke, cards, tea leaves. Here, it speaks through an AI. The deck and the meaning of every card were made by people. The AI just helps you put your own thoughts into words."),
         ("EVERY DAY", "One card, once a day",
          "Your daily card is drawn once and stays yours until midnight. Turn it over when you are ready."),
         ("WHEN YOU WANT MORE", "Pick a read",
