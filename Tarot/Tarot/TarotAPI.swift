@@ -85,7 +85,7 @@ struct TarotService {
     
     /// Longer spreads need more room. The Worker caps this at 2500.
     private func maxTokens(for body: SpreadRequestBody) -> Int {
-        min(2500, max(700, 300 + 150 * body.cards.count))
+        min(2500, max(900, 400 + 200 * body.cards.count))
     }
 
     private func makeRequest(_ body: SpreadRequestBody, stream: Bool) throws -> URLRequest {
@@ -274,7 +274,8 @@ struct TarotService {
                 "- Do NOT use em dashes.",
                 "- There are exactly \(req.cards.count) cards. Write one section for EACH card, in the order given, every one in this format:",
                 "  **<Position> - <Card Name> (<Upright/Reversed>):**",
-                "  <\(isYear ? "2-3 sentences" : "1 short paragraph")>",
+                "  <\(isYear ? "2-3 sentences" : "1 short paragraph, about 70 words")>",
+                "- Do not skip any card. Every one of the \(req.cards.count) cards needs its own section, including the last, before the closing section.",
                 "- Then finish with one more section:",
                 "  **\(isYear ? "The Year In One Breath" : "Bringing It Together"):**",
                 "  <1 clear paragraph that ties all the cards into one story>",

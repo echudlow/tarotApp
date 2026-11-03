@@ -139,6 +139,8 @@ struct SpreadGeometry {
 
     static func supports(_ spreadType: String, count: Int) -> Bool {
         (spreadType == "connection" && count == 5)
+            || (spreadType == "new_moon" && count == 5)
+            || (spreadType == "full_moon" && count == 5)
             || (spreadType == "star" && count == 6)
             || (spreadType == "healing" && count == 6)
             || (spreadType == "elements" && count == 5)
@@ -151,12 +153,30 @@ struct SpreadGeometry {
     static func tileWidth(for spreadType: String) -> CGFloat {
         switch spreadType {
         case "connection": return 72
+        case "full_moon": return 62
+        case "new_moon": return 66
         case "star": return 62
         case "healing", "elements": return 66
         case "tree_of_life": return 60
         case "celtic_cross": return 54
         default: return 44
         }
+    }
+
+    /// Shift a set of rotated cards so the whole shape starts at the top left of its canvas.
+    static func fit(centers: [CGPoint], rotations: [Double], w: CGFloat, h: CGFloat) -> SpreadGeometry {
+        var minX = CGFloat.infinity, maxX = -CGFloat.infinity
+        var minY = CGFloat.infinity, maxY = -CGFloat.infinity
+        for (c, deg) in zip(centers, rotations) {
+            let a = deg * .pi / 180
+            let hx = (w * CGFloat(abs(cos(a))) + h * CGFloat(abs(sin(a)))) / 2
+            let hy = (w * CGFloat(abs(sin(a))) + h * CGFloat(abs(cos(a)))) / 2
+            minX = min(minX, c.x - hx); maxX = max(maxX, c.x + hx)
+            minY = min(minY, c.y - hy); maxY = max(maxY, c.y + hy)
+        }
+        let shifted = centers.map { CGPoint(x: $0.x - minX, y: $0.y - minY) }
+        return SpreadGeometry(size: CGSize(width: maxX - minX, height: maxY - minY),
+                              centers: shifted, rotations: rotations)
     }
 
     static func make(spreadType: String, count: Int, tileW w: CGFloat, tileH h: CGFloat, gap: CGFloat = 8) -> SpreadGeometry? {
@@ -180,6 +200,37 @@ struct SpreadGeometry {
             ]
             return SpreadGeometry(size: CGSize(width: x(3) + w / 2, height: low + h / 2),
                                   centers: centers, rotations: Array(repeating: 0, count: 5))
+
+        case "new_moon":
+            // 1, 2, 3 across the top; 4 and 5 tucked in the gaps below.
+            let step = w * 1.6
+            func x(_ col: CGFloat) -> CGFloat { w / 2 + col * step }
+            let low = h / 2 + h * 1.2
+            let centers = [
+                CGPoint(x: x(0), y: h / 2),    // 1 What This Moon Holds
+                CGPoint(x: x(1), y: h / 2),    // 2 Your Energy
+                CGPoint(x: x(2), y: h / 2),    // 3 Stay Open To
+                CGPoint(x: x(0.5), y: low),    // 4 Ready to Manifest
+                CGPoint(x: x(1.5), y: low)     // 5 Where to Focus
+            ]
+            return SpreadGeometry(size: CGSize(width: x(2) + w / 2, height: low + h / 2),
+                                  centers: centers, rotations: Array(repeating: 0, count: 5))
+
+        case "full_moon":
+            // 2, 3, 4, 5 fanned in an arc, 1 alone below the middle of it.
+            let radius = h * 1.85
+            let angles: [Double] = [-39, -13, 13, 39]
+            var pts: [CGPoint] = angles.map { deg in
+                let a = deg * .pi / 180
+                return CGPoint(x: radius * CGFloat(sin(a)), y: -radius * CGFloat(cos(a)))
+            }
+            var rots = angles
+            pts.append(CGPoint(x: 0, y: -radius + h * 1.3))   // card 1, below the arc
+            rots.append(0)
+            let order = [4, 0, 1, 2, 3]                       // card 1 first, then 2 to 5 left to right
+            let pos = order.map { pts[$0] }
+            let rot = order.map { rots[$0] }
+            return SpreadGeometry.fit(centers: pos, rotations: rot, w: w, h: h)
 
         case "star":
             // A five-pointed star: 1 on top, 3 and 5 down the right, 4 and 2 down the left, 6 in the middle.
