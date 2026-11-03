@@ -28,8 +28,6 @@ struct ReadingView: View {
     @State private var detailCard: TarotCard? = nil
     @State private var focusedIndex: Int? = nil
     @State private var showFullReading = false
-    @AppStorage("hasConsented") private var hasConsented = false
-    @Environment(\.dismiss) private var dismiss
 
     // TODO: set to the App Store link once the app is published
     private let shareLink: String? = nil
@@ -73,14 +71,7 @@ struct ReadingView: View {
         .sheet(item: $detailCard) { card in
             CardDetailSheet(card: card)
         }
-        .overlay {
-            if !hasConsented {
-                ConsentView(onAgree: { withAnimation { hasConsented = true } },
-                            onDecline: { dismiss() })
-                    .transition(.opacity)
-            }
-        }
-        .task(id: "\(cards.count)-\(hasConsented)") {
+        .task(id: cards.count) {
             guard !hasDrawn, cards.count >= definition.positions.count else { return }
             hasDrawn = true
             draw()
@@ -169,31 +160,28 @@ struct ReadingView: View {
     }
 
     private var errorView: some View {
-        let limited = interpretationError == TarotLimitError.reached.errorDescription
-        return VStack(spacing: 14) {
-            Text(limited ? "That's enough for now." : "The cards went quiet.")
+        VStack(spacing: 14) {
+            Text("The cards went quiet.")
                 .font(.system(size: 17, weight: .light, design: .serif))
                 .foregroundStyle(.white)
-            Text(limited ? "The cards need a rest. Come back a little later." : "Check your connection and try again.")
+            Text("Check your connection and try again.")
                 .font(.system(size: 12, weight: .light))
                 .foregroundStyle(.white.opacity(0.4))
-            if !limited {
-                Button {
-                    retryInterpretation()
-                } label: {
-                    Text("Try again")
-                        .font(.system(size: 13, weight: .light, design: .serif))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 10)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(.white.opacity(0.08))
-                                .overlay(RoundedRectangle(cornerRadius: 6).stroke(.white.opacity(0.15), lineWidth: 0.5))
-                        )
-                }
-                .buttonStyle(.plain)
+            Button {
+                retryInterpretation()
+            } label: {
+                Text("Try again")
+                    .font(.system(size: 13, weight: .light, design: .serif))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(.white.opacity(0.08))
+                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(.white.opacity(0.15), lineWidth: 0.5))
+                    )
             }
+            .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 24)
@@ -369,16 +357,19 @@ struct ReadingView: View {
     private func restoreDaily(_ saved: Reading) -> Bool {
         guard let name = saved.cardNames.first,
               let card = cards.first(where: { $0.name == name }) else { return false }
-        
+
         let reversed = saved.cardReversals.first ?? false
         let position = saved.cardPositions.first ?? definition.positions[0]
-        
+
         spread = [DrawnCard(card: card, isReversed: reversed, position: position)]
         interpretation = saved.interpretation
+        if DailyCardStore.interpretationToday == nil {
+            DailyCardStore.saveInterpretation(saved.interpretation)   // keep a copy for later
+        }
         interpretationError = nil
         isLoadingInterpretation = false
         resetReveal()
-        if DailyCardStore.turnedToday || !DailyCardStore.startedToday {
+        if DailyCardStore.turnedToday {
             revealedCards = [0]
             focusedIndex = 0
         }
@@ -403,6 +394,23 @@ struct ReadingView: View {
         if let saved = savedDailyToday, restoreDaily(saved) { return }
 
         let isDaily = definition.id == "daily"
+
+        // Today's reading was finished but its Journal entry is gone: show the kept copy,
+        // with no new API call and no new Journal entry.
+        if isDaily, let stored = DailyCardStore.today(from: cards),
+           let text = DailyCardStore.interpretationToday {
+            spread = [DrawnCard(card: stored.card, isReversed: stored.reversed, position: positions[0])]
+            interpretation = text
+            interpretationError = nil
+            isLoadingInterpretation = false
+            resetReveal()
+            if DailyCardStore.turnedToday {
+                revealedCards = [0]
+                focusedIndex = 0
+            }
+            return
+        }
+
         let selected: [TarotCard]
         let flags: [Bool]
 
@@ -422,10 +430,6 @@ struct ReadingView: View {
             DrawnCard(card: card, isReversed: flags[index], position: positions[index])
         }
 
-        if definition.id != "daily" && !PurchaseStore.shared.isUnlocked {
-            FreeSampleStore.use()
-        }
-        
         spread = newSpread
         interpretation = nil
         interpretationError = nil
@@ -482,7 +486,6 @@ struct ReadingView: View {
                 }
             } catch {
                 if Task.isCancelled { throw error }
-                if error is TarotLimitError { throw error }
                 // Stream failed, fall back to the normal call
                 interpretation = nil
                 response = try await tarotService.interpretSpread(body)
@@ -490,6 +493,9 @@ struct ReadingView: View {
             recordTiming(spreadType, Date().timeIntervalSince(started))
             guard activeRequestID == requestID else { return }
             interpretation = response.interpretation
+            if spreadType == "daily" {
+                DailyCardStore.saveInterpretation(response.interpretation)
+            }
             Haptics.success()
 
             // One saved daily reading per day, even if the screen was opened twice mid-load

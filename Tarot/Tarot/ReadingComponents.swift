@@ -139,6 +139,10 @@ struct SpreadGeometry {
 
     static func supports(_ spreadType: String, count: Int) -> Bool {
         (spreadType == "connection" && count == 5)
+            || (spreadType == "star" && count == 6)
+            || (spreadType == "healing" && count == 6)
+            || (spreadType == "elements" && count == 5)
+            || (spreadType == "tree_of_life" && count == 10)
             || (spreadType == "celtic_cross" && count == 10)
             || (spreadType == "year_ahead" && count == 13)
     }
@@ -147,6 +151,9 @@ struct SpreadGeometry {
     static func tileWidth(for spreadType: String) -> CGFloat {
         switch spreadType {
         case "connection": return 72
+        case "star": return 62
+        case "healing", "elements": return 66
+        case "tree_of_life": return 60
         case "celtic_cross": return 54
         default: return 44
         }
@@ -173,6 +180,72 @@ struct SpreadGeometry {
             ]
             return SpreadGeometry(size: CGSize(width: x(3) + w / 2, height: low + h / 2),
                                   centers: centers, rotations: Array(repeating: 0, count: 5))
+
+        case "star":
+            // A five-pointed star: 1 on top, 3 and 5 down the right, 4 and 2 down the left, 6 in the middle.
+            let r = h * 1.35
+            let cx = r * 0.951 + w / 2
+            let cy = r + h / 2
+            func p(_ deg: Double) -> CGPoint {
+                let a = deg * .pi / 180
+                return CGPoint(x: cx + r * CGFloat(cos(a)), y: cy + r * CGFloat(sin(a)))
+            }
+            let centers = [p(-90), p(198), p(-18), p(126), p(54), CGPoint(x: cx, y: cy)]
+            return SpreadGeometry(size: CGSize(width: 2 * (r * 0.951) + w, height: r + r * 0.809 + h),
+                                  centers: centers, rotations: Array(repeating: 0, count: 6))
+
+        case "healing":
+            // A pyramid: 6 on top, 4 and 5 in the middle, 2, 1, 3 along the bottom.
+            let step = w + 10
+            let rs = h + 10
+            func x(_ col: CGFloat) -> CGFloat { w / 2 + col * step }
+            func y(_ row: CGFloat) -> CGFloat { h / 2 + row * rs }
+            let centers = [
+                CGPoint(x: x(1), y: y(2)),     // 1 The Issue Within
+                CGPoint(x: x(0), y: y(2)),     // 2 Its Past Effects
+                CGPoint(x: x(2), y: y(2)),     // 3 Its Present Effects
+                CGPoint(x: x(0.5), y: y(1)),   // 4 The Source
+                CGPoint(x: x(1.5), y: y(1)),   // 5 Steps to Resolve
+                CGPoint(x: x(1), y: y(0))      // 6 Keeping It Away
+            ]
+            return SpreadGeometry(size: CGSize(width: x(2) + w / 2, height: y(2) + h / 2),
+                                  centers: centers, rotations: Array(repeating: 0, count: 6))
+
+        case "elements":
+            // A plus: 1 on top, 4 | 5 | 2 across the middle, 3 below.
+            let step = w + 6
+            let rs = h + 8
+            func x(_ col: CGFloat) -> CGFloat { w / 2 + col * step }
+            func y(_ row: CGFloat) -> CGFloat { h / 2 + row * rs }
+            let centers = [
+                CGPoint(x: x(1), y: y(0)),     // 1 Earth
+                CGPoint(x: x(2), y: y(1)),     // 2 Air
+                CGPoint(x: x(1), y: y(2)),     // 3 Fire
+                CGPoint(x: x(0), y: y(1)),     // 4 Water
+                CGPoint(x: x(1), y: y(1))      // 5 Intuition
+            ]
+            return SpreadGeometry(size: CGSize(width: x(2) + w / 2, height: y(2) + h / 2),
+                                  centers: centers, rotations: Array(repeating: 0, count: 5))
+
+        case "tree_of_life":
+            // Three pillars: 3, 5, 8 on the left, 1, 6, 9, 10 down the middle, 2, 4, 7 on the right.
+            let step = w * 1.45
+            func x(_ col: CGFloat) -> CGFloat { w / 2 + col * step }
+            func y(_ t: CGFloat) -> CGFloat { (t + 0.5) * h }
+            let centers = [
+                CGPoint(x: x(1), y: y(0)),      // 1 Force
+                CGPoint(x: x(2), y: y(0.7)),    // 2 Form
+                CGPoint(x: x(0), y: y(0.7)),    // 3 Helping Forces
+                CGPoint(x: x(2), y: y(1.95)),   // 4 Opposing Forces
+                CGPoint(x: x(0), y: y(1.95)),   // 5 Feelings
+                CGPoint(x: x(1), y: y(1.95)),   // 6 Thoughts
+                CGPoint(x: x(2), y: y(3.2)),    // 7 Body and Belongings
+                CGPoint(x: x(0), y: y(3.2)),    // 8 Persona
+                CGPoint(x: x(1), y: y(3.2)),    // 9 Intuition
+                CGPoint(x: x(1), y: y(4.45))    // 10 Spirit
+            ]
+            return SpreadGeometry(size: CGSize(width: x(2) + w / 2, height: y(4.45) + h / 2),
+                                  centers: centers, rotations: Array(repeating: 0, count: 10))
 
         case "celtic_cross":
             // The whole shape (cross plus column) is centered on screen. 5, 1, 3 share a center

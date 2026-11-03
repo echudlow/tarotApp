@@ -1,10 +1,7 @@
+//  ReadView.swift
+//  Tarot
 //
-//  Readvew.swift
-//  The Read
-//
-//  Created by Elijah Hudlow on 11/1/26.
-// The "Read tab: pick a spread.
-//
+//  The "Read" tab: pick a spread.
 
 import SwiftUI
 import SwiftData
@@ -221,6 +218,34 @@ struct SpreadGlyph: View {
                     card.scaleEffect(0.8).padding(.top, 6)
                     card.scaleEffect(0.8).padding(.top, 0)
                 }
+            }
+        case "star":
+            ZStack {
+                ForEach(Array([(0.0, -17.0), (-16.0, -5.0), (16.0, -5.0), (-10.0, 14.0), (10.0, 14.0)].enumerated()), id: \.offset) { _, o in
+                    card.scaleEffect(0.6).offset(x: o.0, y: o.1)
+                }
+                card.scaleEffect(0.6)
+            }
+            .frame(width: 56, height: 56)
+        case "healing":
+            VStack(spacing: 2) {
+                card.scaleEffect(0.62).frame(height: 10)
+                HStack(spacing: 3) { card.scaleEffect(0.62).frame(width: 6, height: 10); card.scaleEffect(0.62).frame(width: 6, height: 10) }
+                HStack(spacing: 3) { ForEach(0..<3, id: \.self) { _ in card.scaleEffect(0.62).frame(width: 6, height: 10) } }
+            }
+        case "elements":
+            VStack(spacing: 2) {
+                card.scaleEffect(0.55).frame(height: 9)
+                HStack(spacing: 2) { ForEach(0..<3, id: \.self) { _ in card.scaleEffect(0.55).frame(width: 6, height: 9) } }
+                card.scaleEffect(0.55).frame(height: 9)
+            }
+        case "tree_of_life":
+            VStack(spacing: 1) {
+                card.scaleEffect(0.42).frame(height: 7)
+                HStack(spacing: 10) { card.scaleEffect(0.42).frame(width: 4, height: 7); card.scaleEffect(0.42).frame(width: 4, height: 7) }
+                HStack(spacing: 4) { ForEach(0..<3, id: \.self) { _ in card.scaleEffect(0.42).frame(width: 4, height: 7) } }
+                HStack(spacing: 4) { ForEach(0..<3, id: \.self) { _ in card.scaleEffect(0.42).frame(width: 4, height: 7) } }
+                card.scaleEffect(0.42).frame(height: 7)
             }
         case "celtic_cross":
             HStack(alignment: .center, spacing: 6) {
