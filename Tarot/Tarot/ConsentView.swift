@@ -4,6 +4,7 @@
 //
 //  Created by Elijah Hudlow on 11/1/26.
 //
+//  Shown over a reading until the person agrees to send their cards to the AI service.
 
 import SwiftUI
 
@@ -35,6 +36,9 @@ struct ConsentView: View {
                     .multilineTextAlignment(.center)
 
                 VStack(spacing: 14) {
+                    Text("The universe has always found a voice in strange places. Here, it speaks through an AI.")
+                        .italic()
+                        .foregroundStyle(.white.opacity(0.85))
                     Text("Each reading is written by an AI service. To write it, the cards you draw and any question you ask are sent securely to Anthropic, the company behind Claude.")
                     Text("Nothing else leaves your phone, and your journal stays on this device.")
                 }

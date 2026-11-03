@@ -51,10 +51,9 @@ struct TodayView: View {
             .navigationDestination(for: ReadingRoute.self) { route in
                 ReadingView(route: route)
             }
-        }
-        .sheet(isPresented: $showingSettings) {
-            SettingsSheet()
-                .presentationDetents([.medium, .large])
+            .navigationDestination(isPresented: $showingSettings) {
+                SettingsSheet()
+            }
         }
         .task(id: cards.count) {
             seedPreview()
@@ -209,7 +208,7 @@ struct TodayView: View {
 
     /// The short closing paragraph of today's reading (or its first paragraph).
     private var excerpt: String? {
-        guard let text = todaysReading?.interpretation ?? DailyCardStore.interpretationToday, !text.isEmpty else { return nil }
+        guard let text = todaysReading?.interpretation, !text.isEmpty else { return nil }
         let sections = parseInterpretationSections(text)
         let body = sections.count > 1 ? sections.last?.body : sections.first?.body
         let clean = (body ?? text)
