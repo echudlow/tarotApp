@@ -21,79 +21,78 @@ struct HistoryView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
+            // One list that scrolls on its own, so it ends exactly at the oldest reading
+            List {
+                // Header
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("HISTORY")
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.4))
+                        .kerning(4)
+                    Text("Past Readings")
+                        .font(.system(size: 28, weight: .light, design: .serif))
+                        .foregroundStyle(.white)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 14, trailing: 20))
 
-                    // Header
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("HISTORY")
-                            .font(.system(size: 11, weight: .medium, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.4))
-                            .kerning(4)
-                        Text("Past Readings")
-                            .font(.system(size: 28, weight: .light, design: .serif))
-                            .foregroundStyle(.white)
+                if readings.isEmpty {
+                    VStack(spacing: 12) {
+                        Text("✦")
+                            .font(.system(size: 28))
+                            .foregroundStyle(.white.opacity(0.2))
+                        Text("No readings yet")
+                            .font(.system(size: 14, weight: .light))
+                            .foregroundStyle(.white.opacity(0.3))
                     }
-                    .padding(.top, 8)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 48)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                }
 
-                    if readings.isEmpty {
-                        VStack(spacing: 12) {
-                            Text("✦")
-                                .font(.system(size: 28))
-                                .foregroundStyle(.white.opacity(0.2))
-                            Text("No readings yet")
-                                .font(.system(size: 14, weight: .light))
-                                .foregroundStyle(.white.opacity(0.3))
+                ForEach(readings) { reading in
+                    HStack(spacing: 12) {
+                        if isSelecting {
+                            Image(systemName: selectedReadings.contains(reading.id) ? "checkmark.circle.fill" : "circle")
+                                .font(.system(size: 20))
+                                .foregroundStyle(selectedReadings.contains(reading.id) ? .white : .white.opacity(0.3))
+                                .animation(.easeInOut(duration: 0.15), value: selectedReadings.contains(reading.id))
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 48)
-                    } else {
-                        List {
-                            ForEach(readings) { reading in
-                                HStack(spacing: 12) {
-                                    if isSelecting {
-                                        Image(systemName: selectedReadings.contains(reading.id) ? "checkmark.circle.fill" : "circle")
-                                            .font(.system(size: 20))
-                                            .foregroundStyle(selectedReadings.contains(reading.id) ? .white : .white.opacity(0.3))
-                                            .animation(.easeInOut(duration: 0.15), value: selectedReadings.contains(reading.id))
+                        ReadingHistoryRow(reading: reading, cards: cards)
+                            .onTapGesture {
+                                if isSelecting {
+                                    if selectedReadings.contains(reading.id) {
+                                        selectedReadings.remove(reading.id)
+                                    } else {
+                                        selectedReadings.insert(reading.id)
                                     }
-                                    ReadingHistoryRow(reading: reading, cards: cards)
-                                        .onTapGesture {
-                                            if isSelecting {
-                                                if selectedReadings.contains(reading.id) {
-                                                    selectedReadings.remove(reading.id)
-                                                } else {
-                                                    selectedReadings.insert(reading.id)
-                                                }
-                                            } else {
-                                                selectedReading = reading
-                                            }
-                                        }
+                                } else {
+                                    selectedReading = reading
                                 }
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    if !isSelecting {
-                                        Button(role: .destructive) {
-                                            if let index = readings.firstIndex(where: { $0.id == reading.id }) {
-                                                deleteReadings(at: IndexSet([index]))
-                                            }
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
-                                        }
-                                    }
+                            }
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        if !isSelecting {
+                            Button(role: .destructive) {
+                                if let index = readings.firstIndex(where: { $0.id == reading.id }) {
+                                    deleteReadings(at: IndexSet([index]))
                                 }
-                                .listRowBackground(Color.clear)
-                                .listRowSeparator(.hidden)
-                                .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+                            } label: {
+                                Label("Delete", systemImage: "trash")
                             }
                         }
-                        .listStyle(.plain)
-                        .scrollDisabled(true)
-                        .frame(minHeight: readings.reduce(CGFloat(0)) { $0 + ReadingHistoryRow.estimatedHeight(cardCount: $1.cardNames.count) })
                     }
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 6, leading: 40, bottom: 6, trailing: 40))
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 32)
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .contentMargins(.bottom, 24, for: .scrollContent)
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color.black, for: .navigationBar)
@@ -199,13 +198,6 @@ struct ReadingHistoryRow: View {
     }
     
     static let singleRowLimit = 5
-
-    /// How tall a row can get, so the list above leaves enough room for bigger spreads.
-    static func estimatedHeight(cardCount: Int) -> CGFloat {
-        guard cardCount > singleRowLimit else { return 220 }
-        let rows = (cardCount + 5) / 6          // about 6 thumbnails per row
-        return 220 + CGFloat(rows - 1) * 72
-    }
 
     @ViewBuilder
     private func thumbnail(index: Int, name: String) -> some View {
