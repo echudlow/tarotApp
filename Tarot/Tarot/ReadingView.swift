@@ -369,16 +369,16 @@ struct ReadingView: View {
     private func restoreDaily(_ saved: Reading) -> Bool {
         guard let name = saved.cardNames.first,
               let card = cards.first(where: { $0.name == name }) else { return false }
-
+        
         let reversed = saved.cardReversals.first ?? false
         let position = saved.cardPositions.first ?? definition.positions[0]
-
+        
         spread = [DrawnCard(card: card, isReversed: reversed, position: position)]
         interpretation = saved.interpretation
         interpretationError = nil
         isLoadingInterpretation = false
         resetReveal()
-        if DailyCardStore.turnedToday {
+        if DailyCardStore.turnedToday || !DailyCardStore.startedToday {
             revealedCards = [0]
             focusedIndex = 0
         }

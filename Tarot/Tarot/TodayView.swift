@@ -107,7 +107,7 @@ struct TodayView: View {
     private var dailyModule: some View {
         let daily = dailyCard
         let started = DailyCardStore.startedToday || todaysReading != nil
-        let turned = DailyCardStore.turnedToday && daily != nil
+        let turned = daily != nil && (DailyCardStore.turnedToday || (!DailyCardStore.startedToday && todaysReading != nil))
 
         Button {
             Haptics.tap()
