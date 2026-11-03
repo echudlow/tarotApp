@@ -5,6 +5,9 @@
 //  Created by Elijah Hudlow on 11/1/26.
 //
 
+//  DailyCardStore.swift
+//  Tarot
+
 import Foundation
 
 /// Remembers today's daily card, so it stays the same if you leave mid-reading,
@@ -14,6 +17,7 @@ enum DailyCardStore {
     private static let nameKey = "dailyCardName"
     private static let reversedKey = "dailyCardReversed"
     private static let turnedKey = "dailyCardTurned"
+    private static let textKey = "dailyCardText"
 
     private static var todayStamp: Double {
         Calendar.current.startOfDay(for: Date()).timeIntervalSince1970
@@ -45,9 +49,25 @@ enum DailyCardStore {
         defaults.set(card.name, forKey: nameKey)
         defaults.set(reversed, forKey: reversedKey)
         defaults.set(turned, forKey: turnedKey)
+        defaults.removeObject(forKey: textKey)   // a new draw has no reading yet
     }
 
     static func markTurned(card: TarotCard, reversed: Bool) {
-        save(card: card, reversed: reversed, turned: true)
+        let defaults = UserDefaults.standard
+        guard startedToday else { return save(card: card, reversed: reversed, turned: true) }
+        defaults.set(true, forKey: turnedKey)    // same card, keep its reading
+    }
+
+    /// Today's finished reading text. Kept here as well as in the Journal, so deleting the
+    /// Journal entry never costs another API call.
+    static var interpretationToday: String? {
+        guard startedToday,
+              let text = UserDefaults.standard.string(forKey: textKey), !text.isEmpty else { return nil }
+        return text
+    }
+
+    static func saveInterpretation(_ text: String) {
+        guard startedToday, !text.isEmpty else { return }
+        UserDefaults.standard.set(text, forKey: textKey)
     }
 }

@@ -4,6 +4,7 @@
 //
 //  Created by Elijah Hudlow on 3/18/26.
 //
+
 import SwiftUI
 import SwiftData
 
@@ -87,7 +88,7 @@ struct HistoryView: View {
                         }
                         .listStyle(.plain)
                         .scrollDisabled(true)
-                        .frame(minHeight: CGFloat(readings.count) * 220)
+                        .frame(minHeight: readings.reduce(CGFloat(0)) { $0 + ReadingHistoryRow.estimatedHeight(cardCount: $1.cardNames.count) })
                     }
                 }
                 .padding(.horizontal, 20)
@@ -196,6 +197,29 @@ struct ReadingHistoryRow: View {
         return lines.drop(while: { $0.hasSuffix(":") }).joined(separator: " ")
     }
     
+    static let singleRowLimit = 5
+
+    /// How tall a row can get, so the list above leaves enough room for bigger spreads.
+    static func estimatedHeight(cardCount: Int) -> CGFloat {
+        guard cardCount > singleRowLimit else { return 220 }
+        let rows = (cardCount + 5) / 6          // about 6 thumbnails per row
+        return 220 + CGFloat(rows - 1) * 72
+    }
+
+    @ViewBuilder
+    private func thumbnail(index: Int, name: String) -> some View {
+        let card = cards.first(where: { $0.name == name })
+        let isReversed = reading.cardReversals.indices.contains(index) ? reading.cardReversals[index] : false
+        if let imageName = card?.imageName {
+            Image(imageName)
+                .resizable()
+                .aspectRatio(2/3, contentMode: .fit)
+                .cornerRadius(4)
+                .rotationEffect(isReversed ? .degrees(180) : .degrees(0))
+                .opacity(0.85)
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -214,23 +238,22 @@ struct ReadingHistoryRow: View {
                     .foregroundStyle(.white.opacity(0.2))
             }
 
-            // Card thumbnails
-            HStack(spacing: 8) {
-                ForEach(Array(reading.cardNames.enumerated()), id: \.offset) { index, name in
-                    let card = cards.first(where: { $0.name == name })
-                    let isReversed = reading.cardReversals.indices.contains(index) ? reading.cardReversals[index] : false
-
-                    if let imageName = card?.imageName {
-                        Image(imageName)
-                            .resizable()
-                            .aspectRatio(2/3, contentMode: .fit)
+            // Card thumbnails: up to 5 sit in one row, bigger spreads wrap into a small grid
+            if reading.cardNames.count <= ReadingHistoryRow.singleRowLimit {
+                HStack(spacing: 8) {
+                    ForEach(Array(reading.cardNames.enumerated()), id: \.offset) { index, name in
+                        thumbnail(index: index, name: name)
                             .frame(width: 44)
-                            .cornerRadius(4)
-                            .rotationEffect(isReversed ? .degrees(180) : .degrees(0))
-                            .opacity(0.85)
+                    }
+                    Spacer()
+                }
+            } else {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 36, maximum: 44), spacing: 6)],
+                          alignment: .leading, spacing: 6) {
+                    ForEach(Array(reading.cardNames.enumerated()), id: \.offset) { index, name in
+                        thumbnail(index: index, name: name)
                     }
                 }
-                Spacer()
             }
 
             // Interpretation preview
