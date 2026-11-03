@@ -26,17 +26,9 @@ struct SpreadDefinition: Identifiable, Hashable {
 
     var needsQuestion: Bool { id == "question" }
 
-    /// Only the Year Ahead is date-gated: it opens on December 31 (local time).
-    /// DEBUG builds can always open it, so it can be tested any day.
-    var isAvailableToday: Bool {
-        guard id == "year_ahead" else { return true }
-        #if DEBUG
-        return true
-        #else
-        let c = Calendar.current.dateComponents([.month, .day], from: Date())
-        return c.month == 12 && c.day == 31
-        #endif
-    }
+    /// The moon spreads and the Year Ahead only open on certain days (see SpecialDays.swift).
+    /// Debug builds are always open, so they can be tested any day.
+    var isAvailableToday: Bool { SpecialDays.isOpen(id) }
     var cardCount: Int { positions.count }
 
     static let all: [SpreadDefinition] = [
@@ -95,6 +87,18 @@ struct SpreadDefinition: Identifiable, Hashable {
                                      "Body and Belongings", "Persona", "Intuition", "Spirit"],
                          promptIntro: "This is a Tree of Life spread about one issue. 1 Force is the drive behind the issue. 2 Form is the shape it takes. 3 Helping Forces are the people or forces on the seeker's side. 4 Opposing Forces are those working against them. 5 Feelings are what they feel about it. 6 Thoughts are what they think about it. 7 Body and Belongings covers the physical and material side, including their body and possessions. 8 Persona is who they are and how they present, combined. 9 Intuition is what their inner self advises. 10 Spirit is the spiritual growth the issue and its resolution can bring.",
                          requiresUnlock: true),
+        SpreadDefinition(id: "new_moon", name: "New Moon", subtitle: "5 card spread",
+                         title: "New Moon",
+                         blurb: "A spread for setting intentions. What the moon holds, what to stay open to, and where to put your focus. Opens around each new moon.",
+                         positions: ["What This Moon Holds", "Your Energy", "Stay Open To", "Ready to Manifest", "Where to Focus"],
+                         promptIntro: "This is a New Moon spread, for setting intentions and beginning something. Card 1 is what this new moon holds for the seeker. Card 2 is the seeker's own energy during it. Card 3 is what they need to stay open to. Card 4 is something that wants to come into being now. Card 5 is where to put their attention to bring their desires into reality. Keep the tone hopeful and practical, and about beginnings.",
+                         requiresUnlock: true),
+        SpreadDefinition(id: "full_moon", name: "Full Moon", subtitle: "5 card spread",
+                         title: "Full Moon",
+                         blurb: "A spread for seeing yourself clearly, at the moon's brightest. Your gifts, what fills you up, and what you have not yet noticed. Opens around each full moon.",
+                         positions: ["How You See Yourself", "Your Gifts", "What You Offer Others", "What Fills You Up", "Hidden Potential"],
+                         promptIntro: "This is a Full Moon spread, about illumination and self-knowledge. Card 1 is how the seeker sees themselves. Card 2 is their best qualities. Card 3 is what they give to others. Card 4 is what fulfills them. Card 5 is potential they have not recognized yet. Keep the tone clear and affirming, and about what is now visible.",
+                         requiresUnlock: true),
         SpreadDefinition(id: "celtic_cross", name: "Celtic Cross", subtitle: "10 card spread",
                          title: "Celtic Cross",
                          blurb: "The classic deep read. Ten cards covering the heart of a matter, what crosses it, and where it lands.",
@@ -104,7 +108,7 @@ struct SpreadDefinition: Identifiable, Hashable {
                          requiresUnlock: true),
         SpreadDefinition(id: "year_ahead", name: "Year Ahead", subtitle: "13 card spread",
                          title: "Year Ahead",
-                         blurb: "One card for each month, and one for the year as a whole. Opens only on New Year's Eve.",
+                         blurb: "One card for each month, and one for the year as a whole. Opens for a few days around New Year's Eve.",
                          positions: ["January", "February", "March", "April", "May", "June",
                                      "July", "August", "September", "October", "November", "December", "Theme of the Year"],
                          promptIntro: "This is a Year Ahead spread. Cards 1 to 12 are the twelve months in order, January through December. Card 13 is the overall theme of the year. Keep each month short and concrete, let the months build a story, and tie it to the theme at the end.",

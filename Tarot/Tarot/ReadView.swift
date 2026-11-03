@@ -23,6 +23,12 @@ struct ReadView: View {
             || readings.contains { $0.spreadType == "daily" && Calendar.current.isDate($0.date, inSameDayAs: dayStamp) }
     }
 
+    // The daily card lives on the Today tab, so it is not listed here.
+    private var readable: [SpreadDefinition] { SpreadDefinition.all.filter { $0.id != "daily" } }
+    private var openNow: [SpreadDefinition] {
+        readable.filter { SpecialDays.isGated($0.id) && $0.isAvailableToday }
+    }
+    private var anytime: [SpreadDefinition] { readable.filter { !SpecialDays.isGated($0.id) } }
     var body: some View {
         NavigationStack(path: $path) {
             ZStack {
@@ -31,7 +37,7 @@ struct ReadView: View {
                 ScrollView {
                     VStack(spacing: 14) {
                         VStack(spacing: 4) {
-                            Text("\(SpreadDefinition.all.count) SPREADS")
+                            Text("\(readable.filter { $0.isAvailableToday }.count) SPREADS")
                                 .font(.system(size: 11, weight: .medium, design: .monospaced))
                                 .foregroundStyle(.white.opacity(0.4))
                                 .kerning(4)
@@ -43,7 +49,19 @@ struct ReadView: View {
                         .padding(.top, 40)
                         .padding(.bottom, 14)
 
-                        ForEach(SpreadDefinition.all) { spread in
+                        // Limited-time reads come first, set apart in gold
+                        if !openNow.isEmpty {
+                            SectionLabel(text: "OPEN NOW", gold: true)
+                            ForEach(openNow) { spread in
+                                SpreadRow(spread: spread, note: note(for: spread), locked: isLocked(spread), featured: true) {
+                                    start(spread)
+                                }
+                            }
+                            SectionLabel(text: "ANYTIME", gold: false)
+                                .padding(.top, 10)
+                        }
+
+                        ForEach(anytime) { spread in
                             SpreadRow(spread: spread, note: note(for: spread), locked: isLocked(spread)) {
                                 start(spread)
                             }
@@ -78,7 +96,7 @@ struct ReadView: View {
     }
 
     private func note(for spread: SpreadDefinition) -> String {
-        if !spread.isAvailableToday { return "AVAILABLE DECEMBER 31" }
+        if SpecialDays.isGated(spread.id) { return SpecialDays.closesLabel(spread.id) }
         if spread.id == "daily" {
             return dailyDrawn ? "ONE CARD · DRAWN TODAY" : "ONE CARD · ONCE A DAY"
         }
@@ -96,7 +114,6 @@ struct ReadView: View {
 
     private func start(_ spread: SpreadDefinition) {
         Haptics.tap()
-        if !spread.isAvailableToday { return }
         if isLocked(spread) {
             showingPaywall = true
             return
@@ -116,6 +133,8 @@ struct SpreadRow: View {
     let spread: SpreadDefinition
     var note: String? = nil
     var locked: Bool = false
+    var featured: Bool = false      // open for a limited time: gold
+    var upcoming: Bool = false      // not open yet: quiet, with a clock
     let action: () -> Void
 
     var body: some View {
@@ -136,31 +155,55 @@ struct SpreadRow: View {
                         .fixedSize(horizontal: false, vertical: true)
                     Text(note ?? "\(spread.cardCount) CARDS")
                         .font(.system(size: 9, weight: .medium, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.3))
+                        .foregroundStyle(featured ? Theme.gold : .white.opacity(0.3))
                         .kerning(2)
                         .padding(.top, 2)
                 }
 
                 Spacer(minLength: 0)
 
-                Image(systemName: locked ? "lock" : "chevron.right")
+                Image(systemName: upcoming ? "clock" : (locked ? "lock" : "chevron.right"))
                     .font(.system(size: 11))
-                    .foregroundStyle(locked ? Theme.gold.opacity(0.6) : .white.opacity(0.25))
+                    .foregroundStyle((locked || featured) ? Theme.gold.opacity(0.7) : .white.opacity(0.25))
             }
-            .opacity(locked ? 0.7 : 1)
+            .opacity(upcoming ? 0.5 : (locked && !featured ? 0.7 : 1))
             .padding(16)
             .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(.white.opacity(0.04))
+                    .fill(featured
+                          ? AnyShapeStyle(LinearGradient(colors: [Theme.gold.opacity(0.13), Theme.gold.opacity(0.03)],
+                                                         startPoint: .topLeading, endPoint: .bottomTrailing))
+                          : AnyShapeStyle(Color.white.opacity(0.04)))
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
-                            .stroke(.white.opacity(0.08), lineWidth: 0.5)
+                            .stroke(featured ? Theme.gold.opacity(0.6) : .white.opacity(0.08),
+                                    lineWidth: featured ? 0.8 : 0.5)
                     )
             )
+            .shadow(color: featured ? Theme.gold.opacity(0.18) : .clear, radius: 12)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+}
+
+/// A small heading with a thin line, used to group the Read page.
+struct SectionLabel: View {
+    let text: String
+    var gold: Bool = false
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text(text)
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .foregroundStyle(gold ? Theme.gold : .white.opacity(0.35))
+                .kerning(3)
+            Rectangle()
+                .fill(gold ? Theme.gold.opacity(0.35) : .white.opacity(0.08))
+                .frame(height: 1)
+        }
+        .padding(.top, 4)
     }
 }
 
@@ -246,6 +289,21 @@ struct SpreadGlyph: View {
                 HStack(spacing: 4) { ForEach(0..<3, id: \.self) { _ in card.scaleEffect(0.42).frame(width: 4, height: 7) } }
                 HStack(spacing: 4) { ForEach(0..<3, id: \.self) { _ in card.scaleEffect(0.42).frame(width: 4, height: 7) } }
                 card.scaleEffect(0.42).frame(height: 7)
+            }
+        case "new_moon":
+            VStack(spacing: 2) {
+                HStack(spacing: 5) { ForEach(0..<3, id: \.self) { _ in card.scaleEffect(0.62).frame(width: 6, height: 10) } }
+                HStack(spacing: 5) { ForEach(0..<2, id: \.self) { _ in card.scaleEffect(0.62).frame(width: 6, height: 10) } }
+            }
+        case "full_moon":
+            VStack(spacing: 3) {
+                HStack(alignment: .top, spacing: 2) {
+                    card.scaleEffect(0.6).frame(width: 6, height: 10).rotationEffect(.degrees(-25)).padding(.top, 3)
+                    card.scaleEffect(0.6).frame(width: 6, height: 10).rotationEffect(.degrees(-8))
+                    card.scaleEffect(0.6).frame(width: 6, height: 10).rotationEffect(.degrees(8))
+                    card.scaleEffect(0.6).frame(width: 6, height: 10).rotationEffect(.degrees(25)).padding(.top, 3)
+                }
+                card.scaleEffect(0.6).frame(height: 10)
             }
         case "celtic_cross":
             HStack(alignment: .center, spacing: 6) {
