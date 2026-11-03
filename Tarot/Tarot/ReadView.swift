@@ -324,8 +324,30 @@ struct SpreadGlyph: View {
                 card.scaleEffect(0.5)
             }
             .frame(width: 56, height: 56)
+        case "yule", "ostara", "litha", "samhain":
+            mini
         default:
             row(4)
         }
+    }
+
+    /// A small copy of the real layout, drawn from the same geometry.
+    private var mini: some View {
+        let count = SpreadDefinition.with(id: spreadID).cardCount
+        let g = SpreadGeometry.make(spreadType: spreadID, count: count, tileW: 10, tileH: 15, gap: 3)
+        let size = g?.size ?? CGSize(width: 10, height: 15)
+        let scale = min(1, 54 / size.height, 62 / size.width)
+        return ZStack(alignment: .topLeading) {
+            if let g {
+                ForEach(0..<g.centers.count, id: \.self) { i in
+                    card
+                        .rotationEffect(.degrees(g.rotations[i]))
+                        .position(g.centers[i])
+                }
+            }
+        }
+        .frame(width: size.width, height: size.height)
+        .scaleEffect(scale)
+        .frame(width: 62, height: 54)
     }
 }
