@@ -36,6 +36,30 @@ struct SpecialDayAnnouncement: View {
                     ["Take a quiet moment and let the old year go.",
                      "Turn the cards slowly, January first, one month at a time.",
                      "The last card, in the middle, is the theme of the year. Save it for the end."])
+        case "yule":
+            return ("THE LONGEST NIGHT", "A read for the turning of the light",
+                    "At the winter solstice the dark is at its deepest, and from here the days grow longer again. This read looks at what is hiding, what needs rest, and what the season is teaching.",
+                    ["Find somewhere quiet and dim. A candle helps.",
+                     "Ask what you are carrying into the new year that could be set down.",
+                     "Turn the six cards slowly, and let the last one be the lesson you keep."])
+        case "ostara":
+            return ("THE SPRING EQUINOX", "A read for balance and new growth",
+                    "Day and night stand equal, and things begin to wake. This read looks at what you are welcoming in, what is stirring, and where to put your energy.",
+                    ["Open a window if you can, and take a few slow breaths.",
+                     "Think about what in your life feels ready to begin, or ready to be set right.",
+                     "Turn the cards from one to five along the arch, then the sixth below."])
+        case "litha":
+            return ("MIDSUMMER", "A read for the brightest day",
+                    "The sun is at its highest, and everything is lit. This read looks at your inner fire, the seeds you have planted, and what the light is showing you.",
+                    ["Take a moment in the daylight, or by a flame.",
+                     "Think about what you started this year and how it is growing.",
+                     "Turn the six cards around the sun, and notice what the last one illuminates."])
+        case "samhain":
+            return ("THE VEIL IS THIN", "A read for what comes forward",
+                    "At the end of October, the line between the seen and the unseen feels thin. This read lets a spirit speak three times. It might be an ancestor, a memory, a past self, or your own intuition.",
+                    ["Choose who or what you want to hear from, or leave it open.",
+                     "Turn the first card to meet the spirit, then the three messages in order.",
+                     "The last cards say why now, what is most direct, and what to take with you."])
         default:
             return ("OPEN NOW", spread.title, spread.blurb, [])
         }

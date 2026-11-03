@@ -5,7 +5,6 @@
 //  Created by Elijah Hudlow on 11/1/26.
 //
 
-
 import SwiftUI
 
 struct DrawnCard: Identifiable {
@@ -147,6 +146,10 @@ struct SpreadGeometry {
             || (spreadType == "tree_of_life" && count == 10)
             || (spreadType == "celtic_cross" && count == 10)
             || (spreadType == "year_ahead" && count == 13)
+            || (spreadType == "yule" && count == 6)
+            || (spreadType == "ostara" && count == 6)
+            || (spreadType == "litha" && count == 6)
+            || (spreadType == "samhain" && count == 7)
     }
 
     /// Card width that fits a 342pt content column.
@@ -159,6 +162,10 @@ struct SpreadGeometry {
         case "healing", "elements": return 66
         case "tree_of_life": return 60
         case "celtic_cross": return 54
+        case "yule": return 68
+        case "ostara": return 52
+        case "litha": return 62
+        case "samhain": return 56
         default: return 44
         }
     }
@@ -324,6 +331,63 @@ struct SpreadGeometry {
             rot[1] = 90
             return SpreadGeometry(size: CGSize(width: colX + w / 2, height: y(3) + h / 2),
                                   centers: centers, rotations: rot)
+
+        case "yule":
+            // Two rows of three: 4, 6, 5 on top and 2, 1, 3 below. The outer cards tilt to ring the middle.
+            let step = w * 1.28
+            func x(_ col: CGFloat) -> CGFloat { w / 2 + col * step }
+            let top = h / 2
+            let bottom = h / 2 + h * 1.2
+            let centers = [
+                CGPoint(x: x(1), y: bottom),            // 1 What Hides in the Dark
+                CGPoint(x: x(0), y: bottom - h * 0.08), // 2 Strength for the Shadow
+                CGPoint(x: x(2), y: bottom - h * 0.08), // 3 What to Release
+                CGPoint(x: x(0), y: top + h * 0.08),    // 4 What Needs Rest
+                CGPoint(x: x(2), y: top + h * 0.08),    // 5 How Rest Helps
+                CGPoint(x: x(1), y: top)                // 6 The Season's Lesson
+            ]
+            return SpreadGeometry.fit(centers: centers, rotations: [0, 12, -12, -12, 12, 0], w: w, h: h)
+
+        case "ostara":
+            // An arch of five, 1 to 5 left to right, with 6 hanging below the top of the arch.
+            let step = w * 1.15
+            func x(_ col: CGFloat) -> CGFloat { w / 2 + col * step }
+            let ys: [CGFloat] = [0.85, 0.42, 0, 0.42, 0.85]
+            var centers = (0..<5).map { CGPoint(x: x(CGFloat($0)), y: h / 2 + ys[$0] * h) }
+            centers.append(CGPoint(x: x(2), y: h / 2 + h * 1.1))   // 6 Spring's Theme
+            return SpreadGeometry.fit(centers: centers, rotations: [-10, -5, 0, 5, 10, 0], w: w, h: h)
+
+        case "litha":
+            // A hexagon around a sun: 3 and 6 on top, 2 and 5 at the sides, 1 and 4 below.
+            let row = h * 1.05
+            func y(_ r: CGFloat) -> CGFloat { h / 2 + r * row }
+            let cx = w * 1.2 + w / 2
+            let centers = [
+                CGPoint(x: cx - w * 0.65, y: y(2)),    // 1 Staying Grounded
+                CGPoint(x: cx - w * 1.2, y: y(1)),     // 2 Keeping the Flame
+                CGPoint(x: cx - w * 0.65, y: y(0)),    // 3 Your Inner Fire
+                CGPoint(x: cx + w * 0.65, y: y(2)),    // 4 Tending Your Seeds
+                CGPoint(x: cx + w * 1.2, y: y(1)),     // 5 What to Release
+                CGPoint(x: cx + w * 0.65, y: y(0))     // 6 What Gets Illuminated
+            ]
+            return SpreadGeometry.fit(centers: centers, rotations: Array(repeating: 0, count: 6), w: w, h: h)
+
+        case "samhain":
+            // 1 on top, a row of three, a row of two tucked between them, and 7 at the bottom.
+            let step = w + gap
+            let rs = h + gap
+            func y(_ r: CGFloat) -> CGFloat { h / 2 + r * rs }
+            let cx = step + w / 2
+            let centers = [
+                CGPoint(x: cx, y: y(0)),                   // 1 The Spirit
+                CGPoint(x: cx - step, y: y(1)),            // 2 Message One
+                CGPoint(x: cx, y: y(1)),                   // 3 Message Two
+                CGPoint(x: cx + step, y: y(1)),            // 4 Message Three
+                CGPoint(x: cx - step / 2, y: y(2)),        // 5 Why Now
+                CGPoint(x: cx + step / 2, y: y(2)),        // 6 Direct Message
+                CGPoint(x: cx, y: y(3))                    // 7 What to Take Away
+            ]
+            return SpreadGeometry.fit(centers: centers, rotations: Array(repeating: 0, count: 7), w: w, h: h)
 
         default:
             // Year Ahead: January at the top, the months clockwise, the theme in the middle.

@@ -15,6 +15,8 @@ enum SpecialDays {
     static let moonWindowDays = 3
     /// The Year Ahead opens this many days before and after New Year's Eve.
     static let yearWindowDays = 3
+    /// The four sabbat reads (Yule, Ostara, Litha, Samhain) open this many days either side.
+    static let seasonWindowDays = 3
 
     // Unix seconds (UTC) of each new moon and full moon.
     private static let newMoons: [TimeInterval] = [
@@ -107,9 +109,29 @@ enum SpecialDays {
         2395136648, 2397689401,
     ]
 
+    // Winter solstice, spring equinox and summer solstice (Unix seconds, UTC), 2026 to 2045.
+    private static let winterSolstices: [TimeInterval] = [
+        1797886213, 1829443338, 1860999607, 1892556865, 1924114174, 1955670966,
+        1987228573, 2018785544, 2050342443, 2081899861, 2113456374, 2145013671,
+        2176570936, 2208127259, 2239684396, 2271241107, 2302797863, 2334355299,
+        2365911836, 2397468901,
+    ]
+    private static let springEquinoxes: [TimeInterval] = [
+        1774017936, 1805574295, 1837131429, 1868688103, 1900245115, 1931802068,
+        1963358534, 1994916184, 2026473460, 2058030210, 2089587769, 2121144593,
+        2152701641, 2184258735, 2215815107, 2247372421, 2278929194, 2310485283,
+        2342042442, 2373599243,
+    ]
+    private static let summerSolstices: [TimeInterval] = [
+        1782030296, 1813587043, 1845144095, 1876700902, 1908257483, 1939814235,
+        1971371327, 2002928465, 2034485073, 2066041975, 2097599501, 2129156545,
+        2160713378, 2192270242, 2223827197, 2255384185, 2286940572, 2318497085,
+        2350054247, 2381610832,
+    ]
+
     /// Spreads that are only open on certain days.
     static func isGated(_ spreadID: String) -> Bool {
-        spreadID == "new_moon" || spreadID == "full_moon" || spreadID == "year_ahead"
+        ["new_moon", "full_moon", "year_ahead", "yule", "ostara", "litha", "samhain"].contains(spreadID)
     }
 
     /// The middle day of each opening, from the start of last year onward.
@@ -125,6 +147,18 @@ enum SpecialDays {
             return ((year - 1)...(year + 1)).compactMap {
                 cal.date(from: DateComponents(year: $0, month: 12, day: 31))
             }
+        case "yule":
+            return winterSolstices.map { cal.startOfDay(for: Date(timeIntervalSince1970: $0)) }
+        case "ostara":
+            return springEquinoxes.map { cal.startOfDay(for: Date(timeIntervalSince1970: $0)) }
+        case "litha":
+            return summerSolstices.map { cal.startOfDay(for: Date(timeIntervalSince1970: $0)) }
+        case "samhain":
+            // Halloween, October 31
+            let year = cal.component(.year, from: Date())
+            return ((year - 1)...(year + 1)).compactMap {
+                cal.date(from: DateComponents(year: $0, month: 10, day: 31))
+            }
         default:
             return []
         }
@@ -132,7 +166,11 @@ enum SpecialDays {
 
     /// How many days either side of the center day the spread stays open.
     private static func slack(for spreadID: String) -> Int {
-        spreadID == "year_ahead" ? yearWindowDays : moonWindowDays
+        switch spreadID {
+        case "year_ahead": return yearWindowDays
+        case "yule", "ostara", "litha", "samhain": return seasonWindowDays
+        default: return moonWindowDays
+        }
     }
 
     /// True when the spread can be opened on this date. Debug builds are always open,
@@ -189,7 +227,7 @@ enum SpecialDays {
 
     /// The first open spread the person has not been told about yet.
     static func unseenAnnouncement() -> String? {
-        let order = ["year_ahead", "full_moon", "new_moon"]
+        let order = ["year_ahead", "yule", "ostara", "litha", "samhain", "full_moon", "new_moon"]
         return order.first { isOpen($0) && !UserDefaults.standard.bool(forKey: announcedKey($0)) }
     }
 
@@ -216,7 +254,7 @@ enum SpecialDays {
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
         var items: [(Date, String)] = []
-        for id in ["new_moon", "full_moon", "year_ahead"] {
+        for id in ["new_moon", "full_moon", "year_ahead", "yule", "ostara", "litha", "samhain"] {
             for c in centerDays(for: id) where c >= today {
                 items.append((c, id))
             }
