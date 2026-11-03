@@ -1,5 +1,9 @@
-//  TarotAPI.swift
-//  Tarot
+//
+//  TarotAPI
+//  The Read
+//
+//  Created by Elijah Hudlow on 11/1/26.
+//
 
 import Foundation
 
@@ -79,10 +83,15 @@ struct TarotService {
         }.joined(separator: "\n")
     }
     
+    /// Longer spreads need more room. The Worker caps this at 2500.
+    private func maxTokens(for body: SpreadRequestBody) -> Int {
+        min(2500, max(700, 300 + 150 * body.cards.count))
+    }
+
     private func makeRequest(_ body: SpreadRequestBody, stream: Bool) throws -> URLRequest {
         let requestBody: [String: Any] = [
             "model": "claude-haiku-4-5-20251001",
-            "max_tokens": 700,
+            "max_tokens": maxTokens(for: body),
             "stream": stream,
             "system": systemPrompt,
             "messages": [["role": "user", "content": buildPrompt(body)]]
@@ -253,6 +262,33 @@ struct TarotService {
             return lines.joined(separator: "\n")
         }
         
+        let longSpread = SpreadDefinition.with(id: req.spread_type)
+        if !longSpread.promptIntro.isEmpty, longSpread.id == req.spread_type {
+            let isYear = longSpread.id == "year_ahead"
+            var lines = [
+                "You are a tarot reader. \(longSpread.promptIntro) Speak directly to the seeker. Be grounded, specific, and a little poetic.",
+                "",
+                "STRICT RULES:",
+                "- Do NOT sound like AI.",
+                "- Do NOT include greetings or filler.",
+                "- Do NOT use em dashes.",
+                "- There are exactly \(req.cards.count) cards. Write one section for EACH card, in the order given, every one in this format:",
+                "  **<Position> - <Card Name> (<Upright/Reversed>):**",
+                "  <\(isYear ? "2-3 sentences" : "1 short paragraph")>",
+                "- Then finish with one more section:",
+                "  **\(isYear ? "The Year In One Breath" : "Bringing It Together"):**",
+                "  <1 clear paragraph that ties all the cards into one story>",
+                "",
+                "CARDS:"
+            ]
+            for c in req.cards {
+                let orientation = c.isReversed ? "Reversed" : "Upright"
+                let meaning = c.isReversed ? c.reversedMeaning : c.uprightMeaning
+                lines.append("- Position: \(c.position) | Card: \(c.name) | Orientation: \(orientation) | MeaningRef: \(meaning)")
+            }
+            return lines.joined(separator: "\n")
+        }
+
         if req.spread_type == "clarity" {
             var lines = [
                 "You are a tarot reader doing a Clarity Spread. Card 1 is the overall situation - the most powerful card, the anchor of the reading. Cards 2, 3, and 4 are contributing factors that flesh out the narrative in no particular order of importance. Speak directly to the seeker. Be grounded, clear, and insightful.",

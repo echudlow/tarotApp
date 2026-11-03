@@ -16,7 +16,16 @@ final class PurchaseStore {
     /// Must match the product ID you create in App Store Connect and in the StoreKit config file.
     static let productID = "theread.unlock"
 
-    private(set) var isUnlocked = UserDefaults.standard.bool(forKey: "unlockedCache")
+    /// TESTING SWITCH. While true, Xcode builds (DEBUG) behave as if the unlock were bought,
+    /// so the store never needs to work on a physical phone. Set it to false to test the
+    /// real purchase flow again. Release and TestFlight builds ignore this: always false there.
+    #if DEBUG
+    static let debugUnlockAll = true
+    #else
+    static let debugUnlockAll = false
+    #endif
+
+    private(set) var isUnlocked = PurchaseStore.debugUnlockAll || UserDefaults.standard.bool(forKey: "unlockedCache")
     private(set) var product: Product?
     private(set) var isWorking = false
     var errorMessage: String?
@@ -41,16 +50,15 @@ final class PurchaseStore {
 
     /// Re-check what this Apple ID owns.
     func refresh() async {
+        if Self.debugUnlockAll { isUnlocked = true; return }
         var found = false
         for await result in Transaction.currentEntitlements {
-            print("[iap] entitlement:", result)
             if case .verified(let t) = result,
                t.productID == Self.productID,
                t.revocationDate == nil {
                 found = true
             }
         }
-        print("[iap] unlocked =", found)
         isUnlocked = found
         UserDefaults.standard.set(found, forKey: "unlockedCache")
     }
@@ -75,16 +83,11 @@ final class PurchaseStore {
         isWorking = true
         defer { isWorking = false }
         do {
-            let outcome = try await product.purchase()
-            print("[iap] purchase outcome:", outcome)
-            switch outcome {
+            switch try await product.purchase() {
             case .success(let verification):
                 if case .verified(let t) = verification {
                     await t.finish()
-                    if t.productID == Self.productID && t.revocationDate == nil {
-                        isUnlocked = true
-                        UserDefaults.standard.set(true, forKey: "unlockedCache")
-                    }
+                    await refresh()
                     return isUnlocked
                 }
                 errorMessage = "The purchase couldn't be verified."

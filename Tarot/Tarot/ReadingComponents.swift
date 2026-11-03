@@ -130,6 +130,112 @@ struct CardRow: View {
     }
 }
 
+/// Card positions for the spreads with their own shape (Connection, Celtic Cross, Year Ahead).
+/// Centers are in points inside a canvas of `size`. Shared by the reading screen and the share image.
+struct SpreadGeometry {
+    let size: CGSize
+    let centers: [CGPoint]
+    let rotations: [Double]
+
+    static func supports(_ spreadType: String, count: Int) -> Bool {
+        (spreadType == "connection" && count == 5)
+            || (spreadType == "celtic_cross" && count == 10)
+            || (spreadType == "year_ahead" && count == 13)
+    }
+
+    /// Card width that fits a 342pt content column.
+    static func tileWidth(for spreadType: String) -> CGFloat {
+        switch spreadType {
+        case "connection": return 72
+        case "celtic_cross": return 54
+        default: return 44
+        }
+    }
+
+    static func make(spreadType: String, count: Int, tileW w: CGFloat, tileH h: CGFloat, gap: CGFloat = 8) -> SpreadGeometry? {
+        guard supports(spreadType, count: count) else { return nil }
+
+        switch spreadType {
+        case "connection":
+            // 5 on top, 2 and 4 on the outside, 1 and 3 low in the middle.
+            let step = w + gap
+            let ystep = h + gap
+            func x(_ col: CGFloat) -> CGFloat { w / 2 + col * step }
+            let top = h / 2
+            let mid = h / 2 + 0.9 * ystep
+            let low = h / 2 + 1.25 * ystep
+            let centers = [
+                CGPoint(x: x(1), y: low),      // 1 You
+                CGPoint(x: x(0), y: mid),      // 2 Your Challenge
+                CGPoint(x: x(2), y: low),      // 3 The Other Person
+                CGPoint(x: x(3), y: mid),      // 4 Their Challenge
+                CGPoint(x: x(1.5), y: top)     // 5 The Uniting Force
+            ]
+            return SpreadGeometry(size: CGSize(width: x(3) + w / 2, height: low + h / 2),
+                                  centers: centers, rotations: Array(repeating: 0, count: 5))
+
+        case "celtic_cross":
+            // The whole shape (cross plus column) is centered on screen. 5, 1, 3 share a center
+            // line, 2 lies across 1, and the column of four is centered on the cross's height.
+            let cs = w * 1.25 + gap
+            let rs = h + gap
+            let left = w / 2
+            let cx = left + cs
+            let right = left + 2 * cs
+            let colX = right + w + gap + 18           // column of four, a little clear of the cross
+            func y(_ row: CGFloat) -> CGFloat { h / 2 + row * rs }
+            let centers = [
+                CGPoint(x: cx, y: y(1.5)),     // 1 Heart of the Matter
+                CGPoint(x: cx, y: y(1.5)),     // 2 Opposing Factors (crossing)
+                CGPoint(x: cx, y: y(2.5)),     // 3 Root Cause
+                CGPoint(x: left, y: y(1.5)),   // 4 Past
+                CGPoint(x: cx, y: y(0.5)),     // 5 Goal
+                CGPoint(x: right, y: y(1.5)),  // 6 Future
+                CGPoint(x: colX, y: y(3)),     // 7 You
+                CGPoint(x: colX, y: y(2)),     // 8 External Influences
+                CGPoint(x: colX, y: y(1)),     // 9 Hopes and Fears
+                CGPoint(x: colX, y: y(0))      // 10 Final Outcome
+            ]
+            var rot = Array(repeating: 0.0, count: 10)
+            rot[1] = 90
+            return SpreadGeometry(size: CGSize(width: colX + w / 2, height: y(3) + h / 2),
+                                  centers: centers, rotations: rot)
+
+        default:
+            // Year Ahead: January at the top, the months clockwise, the theme in the middle.
+            let rx = w * 3.38      // as wide as the screen allows
+            let ry = h * 2.1
+            let cx = rx + w / 2
+            let cy = ry + h / 2
+            // Walk around the ellipse in equal steps, measured in card sizes (so tall cards at
+            // 3 and 9 o'clock get the same breathing room as the ones at the top).
+            let samples = 720
+            var pts: [CGPoint] = []
+            var cum: [CGFloat] = [0]
+            for k in 0...samples {
+                let a = 2 * Double.pi * Double(k) / Double(samples)
+                let p = CGPoint(x: cx + rx * CGFloat(sin(a)), y: cy - ry * CGFloat(cos(a)))
+                if let prev = pts.last {
+                    let dx = (p.x - prev.x) / w
+                    let dy = (p.y - prev.y) / h
+                    cum.append(cum[cum.count - 1] + (dx * dx + dy * dy).squareRoot())
+                }
+                pts.append(p)
+            }
+            let total = cum[cum.count - 1]
+            var centers: [CGPoint] = []
+            for i in 0..<12 {
+                let target = total * CGFloat(i) / 12
+                let idx = cum.firstIndex(where: { $0 >= target }) ?? 0
+                centers.append(pts[idx])
+            }
+            centers.append(CGPoint(x: cx, y: cy))
+            return SpreadGeometry(size: CGSize(width: 2 * rx + w, height: 2 * ry + h),
+                                  centers: centers, rotations: Array(repeating: 0, count: 13))
+        }
+    }
+}
+
 struct CardFanView: View {
     let spread: [DrawnCard]
     let isHomePreview: Bool
@@ -163,9 +269,30 @@ struct CardFanView: View {
             .fadeSlideIn(delay: Double(i) * 0.25)
     }
 
+    /// In the Celtic Cross, card 2 lies across card 1. Keep 1 on top until it has been turned.
+    private func stackOrder(_ i: Int) -> Double {
+        guard spreadType == "celtic_cross" else { return 0 }
+        if i == 1 { return revealed(0) ? 2 : 0 }
+        return i == 0 ? 1 : 0
+    }
+
     var body: some View {
         let count = spread.count
-        if count == 1 {
+        let tw = SpreadGeometry.tileWidth(for: spreadType)
+        if !isHomePreview,
+           let geo = SpreadGeometry.make(spreadType: spreadType, count: count, tileW: tw, tileH: tw * 1.5) {
+            ZStack(alignment: .topLeading) {
+                ForEach(0..<count, id: \.self) { i in
+                    tile(i, width: tw, cornerRadius: 5)
+                        .rotationEffect(.degrees(geo.rotations[i]))
+                        .position(geo.centers[i])
+                        .zIndex(stackOrder(i))
+                }
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+        } else if count == 1 {
             tile(0, width: 120)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)

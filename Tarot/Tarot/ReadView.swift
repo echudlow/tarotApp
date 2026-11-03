@@ -3,6 +3,7 @@
 //  The Read
 //
 //  Created by Elijah Hudlow on 11/1/26.
+// The "Read tab: pick a spread.
 //
 
 import SwiftUI
@@ -80,21 +81,25 @@ struct ReadView: View {
     }
 
     private func note(for spread: SpreadDefinition) -> String {
+        if !spread.isAvailableToday { return "AVAILABLE DECEMBER 31" }
         if spread.id == "daily" {
             return dailyDrawn ? "ONE CARD · DRAWN TODAY" : "ONE CARD · ONCE A DAY"
         }
         if store.isUnlocked { return "\(spread.cardCount) CARDS" }
+        if spread.requiresUnlock { return "UNLOCK TO READ" }
         let left = FreeSampleStore.remaining
         return left > 0 ? "FREE SAMPLE · \(left) LEFT" : "UNLOCK TO READ"
     }
 
     /// Everything except the daily card needs the unlock once the free samples are used.
     private func isLocked(_ spread: SpreadDefinition) -> Bool {
-        spread.id != "daily" && !store.isUnlocked && FreeSampleStore.remaining == 0
+        if spread.id == "daily" || store.isUnlocked { return false }
+        return spread.requiresUnlock || FreeSampleStore.remaining == 0
     }
 
     private func start(_ spread: SpreadDefinition) {
         Haptics.tap()
+        if !spread.isAvailableToday { return }
         if isLocked(spread) {
             showingPaywall = true
             return
@@ -206,6 +211,36 @@ struct SpreadGlyph: View {
             }
         case "three_card":
             row(3)
+        case "connection":
+            // 5 on top, then 2, 1, 3, 4 along the bottom
+            VStack(spacing: 2) {
+                card.scaleEffect(0.8).frame(height: 12)
+                HStack(alignment: .top, spacing: 3) {
+                    card.scaleEffect(0.8).padding(.top, 0)
+                    card.scaleEffect(0.8).padding(.top, 6)
+                    card.scaleEffect(0.8).padding(.top, 6)
+                    card.scaleEffect(0.8).padding(.top, 0)
+                }
+            }
+        case "celtic_cross":
+            HStack(alignment: .center, spacing: 6) {
+                VStack(spacing: 2) {
+                    card.scaleEffect(0.6).frame(height: 11)
+                    HStack(spacing: 2) { card.scaleEffect(0.6).frame(width: 7, height: 11); card.scaleEffect(0.6).frame(width: 7, height: 11); card.scaleEffect(0.6).frame(width: 7, height: 11) }
+                    card.scaleEffect(0.6).frame(height: 11)
+                }
+                VStack(spacing: 2) { ForEach(0..<4, id: \.self) { _ in card.scaleEffect(0.45).frame(width: 5, height: 9) } }
+            }
+        case "year_ahead":
+            ZStack {
+                ForEach(0..<12, id: \.self) { i in
+                    card.scaleEffect(0.4)
+                        .offset(y: -20)
+                        .rotationEffect(.degrees(Double(i) * 30))
+                }
+                card.scaleEffect(0.5)
+            }
+            .frame(width: 56, height: 56)
         default:
             row(4)
         }

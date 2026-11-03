@@ -60,6 +60,31 @@ struct ShareCardView: View {
         }
     }
 
+    // Spreads with their own shape. Connection shows names under the cards; the crowded ones do not
+    // (their names are in the written reading below).
+    private var shareShowsLabels: Bool { spreadType == "connection" }
+    private var shareTileW: CGFloat { SpreadGeometry.tileWidth(for: spreadType) }
+    private var shareTileH: CGFloat { shareTileW * 1.5 + (shareShowsLabels ? 38 : 0) }
+    private var shareGeometry: SpreadGeometry? {
+        SpreadGeometry.make(spreadType: spreadType, count: cards.count, tileW: shareTileW, tileH: shareTileH)
+    }
+
+    @ViewBuilder
+    private func shareTile(_ drawn: DrawnCard) -> some View {
+        if shareShowsLabels {
+            cardTile(drawn, width: shareTileW, nameSize: 9)
+        } else if let name = drawn.card.imageName {
+            Image(name)
+                .resizable()
+                .aspectRatio(2/3, contentMode: .fit)
+                .frame(width: shareTileW)
+                .cornerRadius(4)
+                .rotationEffect(.degrees(drawn.isReversed ? 180 : 0))
+                .contentShape(Rectangle())
+                .onTapGesture { onCardTap?(drawn) }
+        }
+    }
+
     @ViewBuilder
     private var spreadLayout: some View {
         if cards.count == 1, let drawn = cards.first {
@@ -103,6 +128,17 @@ struct ShareCardView: View {
                     }
                 }
             }
+        } else if let geo = shareGeometry {
+            ZStack(alignment: .topLeading) {
+                ForEach(Array(cards.enumerated()), id: \.offset) { i, drawn in
+                    shareTile(drawn)
+                        .frame(width: shareTileW, height: shareTileH, alignment: .top)
+                        .rotationEffect(.degrees(geo.rotations[i]))
+                        .position(geo.centers[i])
+                        .zIndex(spreadType == "celtic_cross" && i == 1 ? 2 : 0)
+                }
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
         } else if cards.count == 5 {
             let drops: [CGFloat] = [0, 20, 40, 20, 0]
             HStack(alignment: .top, spacing: 10) {
