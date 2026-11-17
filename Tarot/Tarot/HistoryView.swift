@@ -273,6 +273,7 @@ struct ReadingDetailSheet: View {
     let reading: Reading
     let cards: [TarotCard]
     @State private var selectedCard: TarotCard? = nil
+    @State private var shareItems: ShareItems? = nil
 
     // Rebuild the drawn spread from what was saved
     private var drawnCards: [DrawnCard] {
@@ -311,6 +312,33 @@ struct ReadingDetailSheet: View {
                         }
                     )
 
+                    Button {
+                        prepareShare()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 12, weight: .light))
+                                .foregroundStyle(Theme.gold)
+                            Text("SHARE")
+                                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                .foregroundStyle(.white.opacity(0.7))
+                                .kerning(3)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(.white.opacity(0.06))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(Theme.gold.opacity(0.25), lineWidth: 0.5)
+                                )
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 24)
+                    .padding(.top, 24)
+
                     Spacer(minLength: 40)
                 }
             }
@@ -325,6 +353,46 @@ struct ReadingDetailSheet: View {
         .toolbar(.hidden, for: .tabBar)
         .sheet(item: $selectedCard) { card in
             CardDetailSheet(card: card)
+        }
+        .sheet(item: $shareItems) { share in
+            ActivityView(items: share.items)
+                .presentationDetents([.medium, .large])
+        }
+    }
+
+    // MARK: - Share
+
+    /// Renders the same share image the reading screen makes, from the saved reading.
+    @MainActor
+    private func prepareShare() {
+        Haptics.tap()
+        // The closing section ("Bringing It Together" and the like) has no " - " in its header.
+        let closing = sections.last { !$0.header.contains(" - ") && sections.count > 1 }
+        let plain = reading.interpretation.replacingOccurrences(of: "**", with: "")
+        let card = ShareCardView(
+            spreadName: reading.spreadDisplayName,
+            spreadType: reading.spreadType,
+            cards: drawnCards,
+            question: reading.question,
+            closingHeader: closing?.header,
+            closingText: closing?.body ?? String(plain.prefix(420)),
+            date: reading.date
+        )
+        let renderer = ImageRenderer(content: card)
+        renderer.scale = 3
+        guard let image = renderer.uiImage, let data = image.pngData() else { return }
+
+        let tmp = FileManager.default.temporaryDirectory
+        if let old = try? FileManager.default.contentsOfDirectory(at: tmp, includingPropertiesForKeys: nil) {
+            for f in old where f.lastPathComponent.hasPrefix("The Read - ") {
+                try? FileManager.default.removeItem(at: f)
+            }
+        }
+        let url = tmp.appendingPathComponent("The Read - \(reading.spreadDisplayName) \(UUID().uuidString.prefix(8)).png")
+        if (try? data.write(to: url)) != nil {
+            shareItems = ShareItems(items: [url])
+        } else {
+            shareItems = ShareItems(items: [image])
         }
     }
 }

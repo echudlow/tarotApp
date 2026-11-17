@@ -4,7 +4,7 @@ import { PRIVACY_HTML } from "./privacy.js";
 
 const MODEL = "claude-haiku-4-5-20251001";
 const MAX_TOKENS_CAP = 2500;
-const DEVICE_DAILY_LIMIT = 30;     // readings per device per day
+const DEVICE_DAILY_LIMIT = 500;  // TODO: TESTING ONLY. Set back to 30 before release.
 const GLOBAL_DAILY_LIMIT = 3000;   // readings per day across everyone
 const MAX_BODY_BYTES = 40_000;
 const ALLOWED_FIELDS = ["model", "max_tokens", "system", "messages", "stream", "temperature"];
