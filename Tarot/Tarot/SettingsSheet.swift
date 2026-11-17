@@ -11,6 +11,7 @@ struct SettingsSheet: View {
     @AppStorage("reminderEnabled") private var reminderEnabled = true
     @AppStorage("reminderHour") private var reminderHour = 8
     @AppStorage("reminderMinute") private var reminderMinute = 0
+    @AppStorage(SpeechSound.defaultsKey) private var speechSounds = true
 
     @State private var showingReminder = false
     @State private var restoreNote: String? = nil
@@ -68,6 +69,18 @@ struct SettingsSheet: View {
                         .buttonStyle(.plain)
                         Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
 
+                        HStack {
+                            Text("SPEECH SOUNDS")
+                                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                .foregroundStyle(.white.opacity(0.7))
+                                .kerning(2)
+                            Spacer()
+                            Toggle("", isOn: $speechSounds)
+                                .labelsHidden()
+                                .tint(Theme.gold)
+                        }
+                        .padding(.vertical, 10)
+                        Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
                     }
 
                     VStack(alignment: .leading, spacing: 12) {

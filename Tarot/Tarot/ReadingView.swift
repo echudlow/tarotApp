@@ -28,6 +28,8 @@ struct ReadingView: View {
     @State private var detailCard: TarotCard? = nil
     @State private var focusedIndex: Int? = nil
     @State private var showFullReading = false
+    @State private var liveReading = false          // true only for a reading drawn on this screen
+    @State private var typed: Set<String> = []      // readings already typed out once
 
     // TODO: set to the App Store link once the app is published
     private let shareLink: String? = nil
@@ -50,7 +52,7 @@ struct ReadingView: View {
                         if !spread.isEmpty {
                             fanSection
                             promptLine
-                            focusedRow
+                            focusedRow(proxy: proxy)
                             resultSection(proxy: proxy)
                         }
                     }
@@ -131,15 +133,27 @@ struct ReadingView: View {
 
     // Only the card you're on
     @ViewBuilder
-    private var focusedRow: some View {
+    private func focusedRow(proxy: ScrollViewProxy) -> some View {
         if (!showFullReading || isSingleCard), let i = focusedIndex, spread.indices.contains(i) {
-            CardRow(drawn: spread[i],
-                    reading: section(for: spread[i])?.body,
-                    isLoadingReading: isLoadingInterpretation,
-                    onImageTap: { detailCard = spread[i].card })
-                .id(spread[i].id)
-                .transition(.opacity)
+            let key = "card-\(i)"
+            VStack(spacing: 0) {
+                CardRow(drawn: spread[i],
+                        reading: section(for: spread[i])?.body,
+                        isLoadingReading: isLoadingInterpretation,
+                        animateReading: liveReading && !typed.contains(key),
+                        onTypingProgress: { follow(proxy, "focusRow") },
+                        onTyped: { typed.insert(key) },
+                        onImageTap: { detailCard = spread[i].card })
+                    .id(spread[i].id)      // a new card gets a fresh row, so typing restarts
+                    .transition(.opacity)
+            }
+            .id("focusRow")                // a fixed anchor the screen scrolls to
         }
+    }
+
+    /// Keeps the text that is being typed in view.
+    private func follow(_ proxy: ScrollViewProxy, _ id: String) {
+        withAnimation(.easeOut(duration: 0.4)) { proxy.scrollTo(id, anchor: .bottom) }
     }
 
     @ViewBuilder
@@ -151,7 +165,7 @@ struct ReadingView: View {
                 loadingLine
             } else if interpretation != nil {
                 if closingVisible {
-                    closingBlock
+                    closingBlock(proxy: proxy)
                 } else {
                     putTogetherButton(proxy: proxy)
                 }
@@ -229,7 +243,7 @@ struct ReadingView: View {
         .transition(.opacity)
     }
 
-    private var closingBlock: some View {
+    private func closingBlock(proxy: ScrollViewProxy) -> some View {
         VStack(alignment: .leading, spacing: 28) {
             Rectangle().fill(.white.opacity(0.1)).frame(height: 1)
 
@@ -239,11 +253,17 @@ struct ReadingView: View {
                         .font(.system(size: 10, weight: .medium, design: .monospaced))
                         .foregroundStyle(.white.opacity(0.35))
                         .kerning(3)
-                    Text(parseMarkdown(text))
+                    TypewriterText(
+                        text: parseMarkdown(text),
+                        animate: liveReading && isSingleCard && !typed.contains("closing"),
+                        streamDone: !isLoadingInterpretation,
+                        onProgress: { follow(proxy, "closingText") },
+                        onFinished: { typed.insert("closing") })
                         .font(.system(size: 15, weight: .light, design: .serif))
                         .foregroundStyle(.white.opacity(0.85))
                         .lineSpacing(6)
                 }
+                .id("closingText")
             } else {
                 ForEach(closingSections) { s in
                     VStack(alignment: .leading, spacing: 10) {
@@ -251,11 +271,19 @@ struct ReadingView: View {
                             .font(.system(size: 10, weight: .medium, design: .monospaced))
                             .foregroundStyle(.white.opacity(0.35))
                             .kerning(3)
-                        Text(parseMarkdown(s.body))
+                        TypewriterText(
+                            text: parseMarkdown(s.body),
+                            animate: liveReading && !typed.contains("closing") && s.id == closingSections.first?.id,
+                            streamDone: !isLoadingInterpretation,
+                            onProgress: { follow(proxy, "closingText") },
+                            onFinished: { typed.insert("closing") },
+                            startDelay: 1.3,          // let the scroll up to the spread settle first
+                            scrollAtStart: false)
                             .font(.system(size: 15, weight: .light, design: .serif))
                             .foregroundStyle(.white.opacity(0.85))
                             .lineSpacing(6)
                     }
+                    .id(s.id == closingSections.first?.id ? "closingText" : "closingText-\(s.id)")
                 }
             }
 
@@ -389,6 +417,7 @@ struct ReadingView: View {
     private func draw() {
         let positions = definition.positions
         guard cards.count >= positions.count else { return }
+        liveReading = false     // restored readings show instantly; a fresh draw below turns this on
 
         // Today's daily card was already read: show it again instead of drawing
         if let saved = savedDailyToday, restoreDaily(saved) { return }
@@ -431,6 +460,7 @@ struct ReadingView: View {
         }
 
         spread = newSpread
+        liveReading = true
         interpretation = nil
         interpretationError = nil
         isLoadingInterpretation = true
@@ -541,6 +571,7 @@ struct ReadingView: View {
         revealedCards.removeAll()
         focusedIndex = nil
         showFullReading = false
+        typed.removeAll()
     }
 
     private func handleCardTap(_ index: Int) {

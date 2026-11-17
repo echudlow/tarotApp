@@ -52,6 +52,9 @@ struct CardRow: View {
     let drawn: DrawnCard
     var reading: String? = nil
     var isLoadingReading: Bool = false
+    var animateReading: Bool = false          // type the reading out word by word
+    var onTypingProgress: (() -> Void)? = nil
+    var onTyped: (() -> Void)? = nil
     var onImageTap: (() -> Void)? = nil
 
     var body: some View {
@@ -105,7 +108,12 @@ struct CardRow: View {
                     .fill(.white.opacity(0.08))
                     .frame(height: 1)
                     .padding(.top, 4)
-                Text((try? AttributedString(markdown: reading, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(reading))
+                TypewriterText(
+                    text: (try? AttributedString(markdown: reading, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(reading),
+                    animate: animateReading,
+                    streamDone: !isLoadingReading,
+                    onProgress: onTypingProgress,
+                    onFinished: onTyped)
                     .font(.system(size: 15, weight: .light, design: .serif))
                     .foregroundStyle(.white.opacity(0.85))
                     .lineSpacing(6)
